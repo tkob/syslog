@@ -80,8 +80,7 @@ structure Syslog :> sig
   val hostname : message -> hostname
   val msg : message -> string
 
-  val log' : (unit -> Date.date) -> INetSock.sock_addr -> Pri.pri -> string -> unit
-  val log : INetSock.sock_addr -> Pri.pri -> string -> unit
+  val logRemote : INetSock.sock_addr -> Pri.pri -> string -> unit
   val logLocal : Pri.pri -> string -> unit
 
   val emerg : string -> unit
@@ -119,16 +118,17 @@ end = struct
         end
 
   val toSlice = Word8VectorSlice.full o Byte.stringToBytes
-  fun log' timestampFactory sock_addr pri msg =
+
+  fun logRemote' sockFactory timestampFactory sock_addr pri msg =
         let
-          val sock = INetSock.UDP.socket ()
+          val sock = sockFactory ()
           val timestamp = timestampFactory ()
           val hostname = NetHostDB.getHostName ()
           val message = construct (pri, (timestamp, hostname), msg)
         in
           Socket.sendVecTo (sock, sock_addr, toSlice message)
         end
-
+  val logRemote = logRemote' (fn () => INetSock.UDP.socket ()) (fn () => Date.fromTimeLocal (Time.now ()))
   fun logLocal pri msg =
         let
           val sock_addr = UnixSock.toAddr "/dev/log"
