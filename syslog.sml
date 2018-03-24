@@ -93,12 +93,11 @@ end = struct
     | severityToInt Info    = 6
     | severityToInt Debug   = 7
 
-  fun priToString pri =
+  fun priToString (facility, severity) =
         let
-          fun value (facility, severity) =
-                facilityToInt facility * 8 + severityToInt severity
+          val added = facilityToInt facility * 8 + severityToInt severity
         in
-          "<" ^ Int.toString (value pri) ^ ">"
+          "<" ^ Int.toString added ^ ">"
         end
 
   val toSlice = Word8VectorSlice.full o Byte.stringToBytes
