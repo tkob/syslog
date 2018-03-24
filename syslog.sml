@@ -118,21 +118,25 @@ end = struct
           String.concatWith " " [pri', month,  day, time, hostname, msg] ^ "\n"
         end
 
+  val toSlice = Word8VectorSlice.full o Byte.stringToBytes
   fun log' timestampFactory sock_addr pri msg =
         let
           val sock = INetSock.UDP.socket ()
           val timestamp = timestampFactory ()
           val hostname = NetHostDB.getHostName ()
           val message = construct (pri, (timestamp, hostname), msg)
-          val toSlice = Word8VectorSlice.full o Byte.stringToBytes
         in
           Socket.sendVecTo (sock, sock_addr, toSlice message)
         end
 
-  val log = log' (fn () => Date.fromTimeLocal (Time.now ()))
-
-  val logLocal = 
-        log (INetSock.toAddr (valOf (NetHostDB.fromString "127.0.0.1"), 514))
+  fun logLocal pri msg =
+        let
+          val sock_addr = UnixSock.toAddr "/dev/log"
+          val sock = UnixSock.DGrm.socket ()
+          val message = Pri.toString pri ^ msg
+        in
+          Socket.sendVecTo (sock, sock_addr, toSlice message)
+        end
 
   val emerg   = logLocal (Facility.User, Severity.Emerg)
   val alert   = logLocal (Facility.User, Severity.Alert)
