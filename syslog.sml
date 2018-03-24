@@ -39,16 +39,9 @@ structure Syslog :> sig
     val toString : pri -> string
   end
 
-  type hostname = string
-  type message
-  type port = int
-
-  val pri : message -> Pri.pri
-  val timestamp : message -> Date.date
-  val hostname : message -> hostname
-  val msg : message -> string
-
-  val logRemote : INetSock.sock_addr -> Pri.pri -> string -> unit
+  structure Remote : sig
+    val log : INetSock.sock_addr -> Pri.pri -> string -> unit
+  end
 
   structure Local : sig
     val log : Pri.pri -> string -> unit
@@ -135,43 +128,35 @@ end = struct
     fun toString pri = "<" ^ Int.toString (value pri) ^ ">"
   end
 
-  type hostname = string
-  type header = Date.date * hostname
-  type message = Pri.pri * header * string
-
-  type port = int
-
-  fun pri (pri, _, _) = pri
-  fun timestamp (_, (timestamp, _), _) = timestamp
-  fun hostname (_, (_, hostname), _) = hostname
-  fun msg (_, _, msg) = msg
-
-  fun construct (pri, (timestamp, hostname), msg) =
-        let
-          val pri' = Pri.toString pri
-          val month = Date.fmt "%b" timestamp
-          val day =
-              let val day = Int.toString (Date.day timestamp) in
-                if String.size day < 2 then " " ^ day
-                else day
-              end
-          val time = Date.fmt "%H:%M:%S" timestamp
-        in
-          String.concatWith " " [pri', month,  day, time, hostname, msg] ^ "\n"
-        end
-
   val toSlice = Word8VectorSlice.full o Byte.stringToBytes
 
-  fun logRemote' sockFactory timestampFactory sock_addr pri msg =
-        let
-          val sock = sockFactory ()
-          val timestamp = timestampFactory ()
-          val hostname = NetHostDB.getHostName ()
-          val message = construct (pri, (timestamp, hostname), msg)
-        in
-          Socket.sendVecTo (sock, sock_addr, toSlice message)
-        end
-  val logRemote = logRemote' (fn () => INetSock.UDP.socket ()) (fn () => Date.fromTimeLocal (Time.now ()))
+  structure Remote = struct
+    fun construct (pri, (timestamp, hostname), msg) =
+          let
+            val pri' = Pri.toString pri
+            val month = Date.fmt "%b" timestamp
+            val day =
+                let val day = Int.toString (Date.day timestamp) in
+                  if String.size day < 2 then " " ^ day
+                  else day
+                end
+            val time = Date.fmt "%H:%M:%S" timestamp
+          in
+            String.concatWith " " [pri', month,  day, time, hostname, msg] ^ "\n"
+          end
+
+    fun log' sockFactory timestampFactory sock_addr pri msg =
+          let
+            val sock = sockFactory ()
+            val timestamp = timestampFactory ()
+            val hostname = NetHostDB.getHostName ()
+            val message = construct (pri, (timestamp, hostname), msg)
+          in
+            Socket.sendVecTo (sock, sock_addr, toSlice message)
+          end
+
+    val log = log' (fn () => INetSock.UDP.socket ()) (fn () => Date.fromTimeLocal (Time.now ()))
+  end
 
   structure Local = struct
     fun log pri msg =
