@@ -49,16 +49,19 @@ structure Syslog :> sig
   val msg : message -> string
 
   val logRemote : INetSock.sock_addr -> Pri.pri -> string -> unit
-  val logLocal : Pri.pri -> string -> unit
 
-  val emerg : string -> unit
-  val alert : string -> unit
-  val crit : string -> unit
-  val err : string -> unit
-  val warning : string -> unit
-  val notice : string -> unit
-  val info : string -> unit
-  val debug : string -> unit
+  structure Local : sig
+    val log : Pri.pri -> string -> unit
+
+    val emerg   : string -> unit
+    val alert   : string -> unit
+    val crit    : string -> unit
+    val err     : string -> unit
+    val warning : string -> unit
+    val notice  : string -> unit
+    val info    : string -> unit
+    val debug   : string -> unit
+  end
 end = struct
   structure Facility = struct
     datatype facility = Kern
@@ -169,21 +172,24 @@ end = struct
           Socket.sendVecTo (sock, sock_addr, toSlice message)
         end
   val logRemote = logRemote' (fn () => INetSock.UDP.socket ()) (fn () => Date.fromTimeLocal (Time.now ()))
-  fun logLocal pri msg =
-        let
-          val sock_addr = UnixSock.toAddr "/dev/log"
-          val sock = UnixSock.DGrm.socket ()
-          val message = Pri.toString pri ^ msg
-        in
-          Socket.sendVecTo (sock, sock_addr, toSlice message)
-        end
 
-  val emerg   = logLocal (Facility.User, Severity.Emerg)
-  val alert   = logLocal (Facility.User, Severity.Alert)
-  val crit    = logLocal (Facility.User, Severity.Crit)
-  val err     = logLocal (Facility.User, Severity.Err)
-  val warning = logLocal (Facility.User, Severity.Warning)
-  val notice  = logLocal (Facility.User, Severity.Notice)
-  val info    = logLocal (Facility.User, Severity.Info)
-  val debug   = logLocal (Facility.User, Severity.Debug)
+  structure Local = struct
+    fun log pri msg =
+          let
+            val sock_addr = UnixSock.toAddr "/dev/log"
+            val sock = UnixSock.DGrm.socket ()
+            val message = Pri.toString pri ^ msg
+          in
+            Socket.sendVecTo (sock, sock_addr, toSlice message)
+          end
+
+    val emerg   = log (Facility.User, Severity.Emerg)
+    val alert   = log (Facility.User, Severity.Alert)
+    val crit    = log (Facility.User, Severity.Crit)
+    val err     = log (Facility.User, Severity.Err)
+    val warning = log (Facility.User, Severity.Warning)
+    val notice  = log (Facility.User, Severity.Notice)
+    val info    = log (Facility.User, Severity.Info)
+    val debug   = log (Facility.User, Severity.Debug)
+  end
 end
