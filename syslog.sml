@@ -1,76 +1,44 @@
-structure Facility = struct
-  datatype facility = Kern
-                    | User
-                    | Mail
-                    | Daemon
-                    | Auth
-                    | Syslog
-                    | Lpr
-                    | New
-                    | Uucp
-                    | Cron
-                    | Authpriv
-                    | Ftp
-                    | Ntp
-                    | Audit
-                    | Alert
-                    | Clock
-                    | Local0
-                    | Local1
-                    | Local2
-                    | Local3
-                    | Local4
-                    | Local5
-                    | Local6
-                    | Local7
-  fun num Kern     = 0
-    | num User     = 1
-    | num Mail     = 2
-    | num Daemon   = 3
-    | num Auth     = 4
-    | num Syslog   = 5
-    | num Lpr      = 6
-    | num New      = 7
-    | num Uucp     = 8
-    | num Cron     = 9
-    | num Authpriv = 10
-    | num Ftp      = 11
-    | num Ntp      = 12
-    | num Audit    = 13
-    | num Alert    = 14
-    | num Clock    = 15
-    | num Local0   = 16
-    | num Local1   = 17
-    | num Local2   = 18
-    | num Local3   = 19
-    | num Local4   = 20
-    | num Local5   = 21
-    | num Local6   = 22
-    | num Local7   = 23
-end
-
-structure Severity = struct
-  datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
-  fun num Emerg   = 0
-    | num Alert   = 1
-    | num Crit    = 2
-    | num Err     = 3
-    | num Warning = 4
-    | num Notice  = 5
-    | num Info    = 6
-    | num Debug   = 7
-end
-
-structure Pri = struct
-  type pri = Facility.facility * Severity.severity
-
-  fun value (facility, severity) =
-        Facility.num facility * 8 + Severity.num severity
-
-  fun toString pri = "<" ^ Int.toString (value pri) ^ ">"
-end
-
 structure Syslog :> sig
+  structure Facility : sig
+    datatype facility = Kern
+                      | User
+                      | Mail
+                      | Daemon
+                      | Auth
+                      | Syslog
+                      | Lpr
+                      | New
+                      | Uucp
+                      | Cron
+                      | Authpriv
+                      | Ftp
+                      | Ntp
+                      | Audit
+                      | Alert
+                      | Clock
+                      | Local0
+                      | Local1
+                      | Local2
+                      | Local3
+                      | Local4
+                      | Local5
+                      | Local6
+                      | Local7
+    val num : facility -> int
+  end
+
+  structure Severity : sig
+    datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
+    val num : severity -> int
+  end
+
+  structure Pri : sig
+    type pri = Facility.facility * Severity.severity
+  
+    val value : pri -> int
+    val toString : pri -> string
+  end
+
   type hostname = string
   type message
   type port = int
@@ -92,6 +60,78 @@ structure Syslog :> sig
   val info : string -> unit
   val debug : string -> unit
 end = struct
+  structure Facility = struct
+    datatype facility = Kern
+                      | User
+                      | Mail
+                      | Daemon
+                      | Auth
+                      | Syslog
+                      | Lpr
+                      | New
+                      | Uucp
+                      | Cron
+                      | Authpriv
+                      | Ftp
+                      | Ntp
+                      | Audit
+                      | Alert
+                      | Clock
+                      | Local0
+                      | Local1
+                      | Local2
+                      | Local3
+                      | Local4
+                      | Local5
+                      | Local6
+                      | Local7
+    fun num Kern     = 0
+      | num User     = 1
+      | num Mail     = 2
+      | num Daemon   = 3
+      | num Auth     = 4
+      | num Syslog   = 5
+      | num Lpr      = 6
+      | num New      = 7
+      | num Uucp     = 8
+      | num Cron     = 9
+      | num Authpriv = 10
+      | num Ftp      = 11
+      | num Ntp      = 12
+      | num Audit    = 13
+      | num Alert    = 14
+      | num Clock    = 15
+      | num Local0   = 16
+      | num Local1   = 17
+      | num Local2   = 18
+      | num Local3   = 19
+      | num Local4   = 20
+      | num Local5   = 21
+      | num Local6   = 22
+      | num Local7   = 23
+  end
+
+  structure Severity = struct
+    datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
+    fun num Emerg   = 0
+      | num Alert   = 1
+      | num Crit    = 2
+      | num Err     = 3
+      | num Warning = 4
+      | num Notice  = 5
+      | num Info    = 6
+      | num Debug   = 7
+  end
+
+  structure Pri = struct
+    type pri = Facility.facility * Severity.severity
+
+    fun value (facility, severity) =
+          Facility.num facility * 8 + Severity.num severity
+  
+    fun toString pri = "<" ^ Int.toString (value pri) ^ ">"
+  end
+
   type hostname = string
   type header = Date.date * hostname
   type message = Pri.pri * header * string
