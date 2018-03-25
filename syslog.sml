@@ -10,6 +10,11 @@ structure Syslog :> sig
                     | Uucp
                     | Cron
                     | Authpriv
+                    | Ftp
+                    | Ntp
+                    | LogAudit
+                    | LogAlert
+                    | Clock
                     | Local0
                     | Local1
                     | Local2
@@ -57,6 +62,11 @@ end = struct
                     | Uucp
                     | Cron
                     | Authpriv
+                    | Ftp
+                    | Ntp
+                    | LogAudit
+                    | LogAlert
+                    | Clock
                     | Local0
                     | Local1
                     | Local2
@@ -81,6 +91,11 @@ end = struct
     | facilityToInt Uucp     = 8
     | facilityToInt Cron     = 9
     | facilityToInt Authpriv = 10
+    | facilityToInt Ftp      = 11
+    | facilityToInt Ntp      = 12
+    | facilityToInt LogAudit = 13
+    | facilityToInt LogAlert = 14
+    | facilityToInt Clock    = 15
     | facilityToInt Local0   = 16
     | facilityToInt Local1   = 17
     | facilityToInt Local2   = 18
