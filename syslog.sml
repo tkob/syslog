@@ -39,6 +39,12 @@ structure Syslog :> sig
     val info    : string -> unit
     val debug   : string -> unit
   end
+
+  structure Server : sig
+    val start : INetSock.sock_addr -> unit
+  end
+
+  val stringToAddr : string -> INetSock.sock_addr
 end = struct
   datatype facility = Kern
                     | User
@@ -149,4 +155,83 @@ end = struct
     val info    = log (User, Info)
     val debug   = log (User, Debug)
   end
+
+  structure Server = struct
+    fun receiveLocal (path, ch) =
+          let
+            val addr = UnixSock.toAddr path
+            val sock = UnixSock.DGrm.socket ()
+            val _ = Socket.bind (sock, addr)
+            fun loop () =
+                  let
+                    val (vec, _) = Socket.recvVecFrom (sock, 256)
+                  in
+                    print (Byte.bytesToString vec);
+                    CML.send (ch, Byte.bytesToString vec);
+                    loop ()
+                  end
+          in
+            loop ()
+          end
+
+    fun receiveRemote (addr, ch) =
+          let
+            val sock = INetSock.UDP.socket ()
+            val _ = Socket.bind (sock, addr)
+            fun loop () =
+                  let
+                    val (vec, _) = Socket.recvVecFrom (sock, 256)
+                  in
+                    print (Byte.bytesToString vec);
+                    CML.send (ch, Byte.bytesToString vec);
+                    loop ()
+                  end
+          in
+            loop ()
+          end
+
+    fun start addr =
+          let
+            val ch = CML.channel ()
+            val receiveLocal = CML.spawn (fn () => receiveLocal ("/dev/log", ch))
+            val receiveRemote = CML.spawn (fn () => receiveRemote (addr, ch))
+            fun loop () =
+                  let
+                    val message = CML.recv ch
+                  in
+                    print message;
+                    loop ()
+                  end
+          in
+            loop ()
+          end
+  end
+
+  fun stringToAddr hostPort =
+        let
+          val (host, port) = case String.tokens (fn ch => ch = #":") hostPort of
+                                  [host, port] => (host, port)
+                                | _ => raise Match
+          val host' = valOf (NetHostDB.fromString host)
+          val port' = valOf (Int.fromString port)
+          val addr = INetSock.toAddr (host', port')
+        in
+          addr
+        end
 end
+
+structure Syslogd = struct
+  fun main (name : string, argv : string list) =
+        let
+          fun boot () = (
+            print "starting syslogd\n";
+            Syslog.Server.start (Syslog.stringToAddr "0.0.0.0:514")
+            )
+        in
+          print "booting CML\n";
+          RunCML.doit (boot, NONE)
+        end
+end
+
+fun main () =
+      OS.Process.exit (Syslogd.main (CommandLine.name (), CommandLine.arguments ()))
