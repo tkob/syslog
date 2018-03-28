@@ -105,6 +105,32 @@ end = struct
     | facilityToInt Local6   = 22
     | facilityToInt Local7   = 23
 
+  fun intToFacility 0  = SOME Kern
+    | intToFacility 1  = SOME User
+    | intToFacility 2  = SOME Mail
+    | intToFacility 3  = SOME Daemon
+    | intToFacility 4  = SOME Auth
+    | intToFacility 5  = SOME Syslog
+    | intToFacility 6  = SOME Lpr
+    | intToFacility 7  = SOME New
+    | intToFacility 8  = SOME Uucp
+    | intToFacility 9  = SOME Cron
+    | intToFacility 10 = SOME Authpriv
+    | intToFacility 11 = SOME Ftp
+    | intToFacility 12 = SOME Ntp
+    | intToFacility 13 = SOME LogAudit
+    | intToFacility 14 = SOME LogAlert
+    | intToFacility 15 = SOME Clock
+    | intToFacility 16 = SOME Local0
+    | intToFacility 17 = SOME Local1
+    | intToFacility 18 = SOME Local2
+    | intToFacility 19 = SOME Local3
+    | intToFacility 20 = SOME Local4
+    | intToFacility 21 = SOME Local5
+    | intToFacility 22 = SOME Local6
+    | intToFacility 23 = SOME Local7
+    | intToFacility _  = NONE
+
   fun severityToInt Emerg   = 0
     | severityToInt Alert   = 1
     | severityToInt Crit    = 2
@@ -113,6 +139,16 @@ end = struct
     | severityToInt Notice  = 5
     | severityToInt Info    = 6
     | severityToInt Debug   = 7
+
+  fun intToSeverity 0 = SOME Emerg
+    | intToSeverity 1 = SOME Alert
+    | intToSeverity 2 = SOME Crit
+    | intToSeverity 3 = SOME Err
+    | intToSeverity 4 = SOME Warning
+    | intToSeverity 5 = SOME Notice
+    | intToSeverity 6 = SOME Info
+    | intToSeverity 7 = SOME Debug
+    | intToSeverity _ = NONE
 
   fun priToString (facility, severity) =
         let
