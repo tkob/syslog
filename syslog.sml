@@ -46,10 +46,10 @@ structure Syslog :> sig
   end
 
   structure Server : sig
-    val start : INetSock.sock_addr -> unit
+    val start : string * INetSock.sock_addr -> unit
   end
 
-  val stringToAddr : string -> INetSock.sock_addr
+  val stringToAddr : string -> INetSock.sock_addr option
 end = struct
   datatype facility = Kern
                     | User
@@ -157,6 +157,10 @@ end = struct
           "<" ^ Int.toString added ^ ">"
         end
 
+  infix >>=
+  fun (SOME x) >>= k = k x
+    | NONE     >>= k = NONE
+
   val toSlice = Word8VectorSlice.full o Byte.stringToBytes
 
   structure Remote = struct
@@ -185,6 +189,14 @@ end = struct
           end
 
     val log = log' (fn () => INetSock.UDP.socket ()) (fn () => Date.fromTimeLocal (Time.now ()))
+
+    fun socketFromAddr addr =
+          let
+            val sock = INetSock.UDP.socket ()
+            val _ = Socket.bind (sock, addr)
+          in
+            sock
+          end
   end
 
   structure Local = struct
@@ -205,47 +217,62 @@ end = struct
     val notice  = log (User, Notice)
     val info    = log (User, Info)
     val debug   = log (User, Debug)
+
+    fun socketFromPath path =
+          let
+            val addr = UnixSock.toAddr path
+            (* Pre-condition: the Unix domain socket is not in use.
+               Otherwise, bind will fail. *)
+            fun create path =
+                  let
+                    val sock = UnixSock.DGrm.socket ()
+                    val _ = Socket.bind (sock, addr)
+                  in
+                    sock
+                  end
+          in
+            if OS.FileSys.access (path, [])
+            then
+              let
+                val sock = UnixSock.DGrm.socket ()
+              in
+                let
+                  val sockOpt =
+                    (ignore (Socket.connectNB (sock, addr)); NONE)
+                    handle OS.SysErr (_, _) => (
+                      (* if connect raises an exception,
+                         the socket file can be safely removed *)
+                      OS.FileSys.remove path;
+                      SOME (create path))
+                 in
+                   case sockOpt of
+                        SOME sock => sock
+                      | NONE =>
+                          (* else, someone else is using the socket *)
+                          raise OS.SysErr ("\"" ^  path ^ "\" already in use", NONE)
+                end
+              end
+            else
+              create path
+          end
   end
 
   structure Server = struct
-    fun receiveLocal (path, ch) =
+    fun receiveLoop (sock, ch) =
           let
-            val addr = UnixSock.toAddr path
-            val sock = UnixSock.DGrm.socket ()
-            val _ = Socket.bind (sock, addr)
-            fun loop () =
-                  let
-                    val (vec, _) = Socket.recvVecFrom (sock, 256)
-                  in
-                    print (Byte.bytesToString vec);
-                    CML.send (ch, Byte.bytesToString vec);
-                    loop ()
-                  end
+            val (vec, _) = Socket.recvVecFrom (sock, 1024)
           in
-            loop ()
+            CML.send (ch, Byte.bytesToString vec);
+            receiveLoop (sock, ch)
           end
 
-    fun receiveRemote (addr, ch) =
-          let
-            val sock = INetSock.UDP.socket ()
-            val _ = Socket.bind (sock, addr)
-            fun loop () =
-                  let
-                    val (vec, _) = Socket.recvVecFrom (sock, 256)
-                  in
-                    print (Byte.bytesToString vec);
-                    CML.send (ch, Byte.bytesToString vec);
-                    loop ()
-                  end
-          in
-            loop ()
-          end
-
-    fun start addr =
+    fun start (path, addr) =
           let
             val ch = CML.channel ()
-            val receiveLocal = CML.spawn (fn () => receiveLocal ("/dev/log", ch))
-            val receiveRemote = CML.spawn (fn () => receiveRemote (addr, ch))
+            val localSock = Local.socketFromPath path
+            val remoteSock = Remote.socketFromAddr addr
+            val receiveLocal = CML.spawn (fn () => receiveLoop (localSock, ch))
+            val receiveRemote = CML.spawn (fn () => receiveLoop (remoteSock, ch))
             fun loop () =
                   let
                     val message = CML.recv ch
@@ -256,18 +283,20 @@ end = struct
           in
             loop ()
           end
+          handle OS.SysErr (m, _) => print ("OS.SysErr " ^ m ^ "\n")
   end
 
   fun stringToAddr hostPort =
         let
-          val (host, port) = case String.tokens (fn ch => ch = #":") hostPort of
-                                  [host, port] => (host, port)
-                                | _ => raise Match
-          val host' = valOf (NetHostDB.fromString host)
-          val port' = valOf (Int.fromString port)
-          val addr = INetSock.toAddr (host', port')
+          fun split hostPort =
+                case String.tokens (fn ch => ch = #":") hostPort of
+                     [host, port] => SOME (host, port)
+                   | _ => NONE
         in
-          addr
+          split hostPort            >>= (fn (host, port) =>
+          NetHostDB.fromString host >>= (fn host' =>
+          Int.fromString port       >>= (fn port' =>
+          SOME (INetSock.toAddr (host', port')))))
         end
 end
 
@@ -276,10 +305,10 @@ structure Syslogd = struct
         let
           fun boot () = (
             print "starting syslogd\n";
-            Syslog.Server.start (Syslog.stringToAddr "0.0.0.0:514")
+            Syslog.Server.start ("log", valOf (Syslog.stringToAddr ("0.0.0.0:5140")))
             )
         in
-          print "booting CML\n";
+          print "booting\n";
           RunCML.doit (boot, NONE)
         end
 end
