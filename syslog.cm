@@ -1,0 +1,8 @@
+Library
+  structure Syslog
+  structure Syslogd
+is
+  $/basis.cm
+  $cml/cml.cm
+
+  syslog.sml
