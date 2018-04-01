@@ -28,6 +28,14 @@ structure Syslog :> sig
 
   type pri = facility * severity
 
+  structure Message : sig
+      type header = Date.date * string
+      type message = pri option * header option * string
+
+      val fromString : string -> message option
+      val toString : message -> string
+  end
+
   structure Remote : sig
     val log : INetSock.sock_addr -> pri -> string -> unit
   end
@@ -80,93 +88,280 @@ end = struct
 
   type pri = facility * severity
 
-  fun facilityToInt Kern     = 0
-    | facilityToInt User     = 1
-    | facilityToInt Mail     = 2
-    | facilityToInt Daemon   = 3
-    | facilityToInt Auth     = 4
-    | facilityToInt Syslog   = 5
-    | facilityToInt Lpr      = 6
-    | facilityToInt New      = 7
-    | facilityToInt Uucp     = 8
-    | facilityToInt Cron     = 9
-    | facilityToInt Authpriv = 10
-    | facilityToInt Ftp      = 11
-    | facilityToInt Ntp      = 12
-    | facilityToInt LogAudit = 13
-    | facilityToInt LogAlert = 14
-    | facilityToInt Clock    = 15
-    | facilityToInt Local0   = 16
-    | facilityToInt Local1   = 17
-    | facilityToInt Local2   = 18
-    | facilityToInt Local3   = 19
-    | facilityToInt Local4   = 20
-    | facilityToInt Local5   = 21
-    | facilityToInt Local6   = 22
-    | facilityToInt Local7   = 23
-
-  fun intToFacility 0  = SOME Kern
-    | intToFacility 1  = SOME User
-    | intToFacility 2  = SOME Mail
-    | intToFacility 3  = SOME Daemon
-    | intToFacility 4  = SOME Auth
-    | intToFacility 5  = SOME Syslog
-    | intToFacility 6  = SOME Lpr
-    | intToFacility 7  = SOME New
-    | intToFacility 8  = SOME Uucp
-    | intToFacility 9  = SOME Cron
-    | intToFacility 10 = SOME Authpriv
-    | intToFacility 11 = SOME Ftp
-    | intToFacility 12 = SOME Ntp
-    | intToFacility 13 = SOME LogAudit
-    | intToFacility 14 = SOME LogAlert
-    | intToFacility 15 = SOME Clock
-    | intToFacility 16 = SOME Local0
-    | intToFacility 17 = SOME Local1
-    | intToFacility 18 = SOME Local2
-    | intToFacility 19 = SOME Local3
-    | intToFacility 20 = SOME Local4
-    | intToFacility 21 = SOME Local5
-    | intToFacility 22 = SOME Local6
-    | intToFacility 23 = SOME Local7
-    | intToFacility _  = NONE
-
-  fun severityToInt Emerg   = 0
-    | severityToInt Alert   = 1
-    | severityToInt Crit    = 2
-    | severityToInt Err     = 3
-    | severityToInt Warning = 4
-    | severityToInt Notice  = 5
-    | severityToInt Info    = 6
-    | severityToInt Debug   = 7
-
-  fun intToSeverity 0 = SOME Emerg
-    | intToSeverity 1 = SOME Alert
-    | intToSeverity 2 = SOME Crit
-    | intToSeverity 3 = SOME Err
-    | intToSeverity 4 = SOME Warning
-    | intToSeverity 5 = SOME Notice
-    | intToSeverity 6 = SOME Info
-    | intToSeverity 7 = SOME Debug
-    | intToSeverity _ = NONE
-
-  fun priToString (facility, severity) =
-        let
-          val added = facilityToInt facility * 8 + severityToInt severity
-        in
-          "<" ^ Int.toString added ^ ">"
-        end
-
   infix >>=
   fun (SOME x) >>= k = k x
     | NONE     >>= k = NONE
+
+  structure Message = struct
+    type header = Date.date * string
+    type message = pri option * header option * string
+
+    fun facilityToInt Kern     = 0
+      | facilityToInt User     = 1
+      | facilityToInt Mail     = 2
+      | facilityToInt Daemon   = 3
+      | facilityToInt Auth     = 4
+      | facilityToInt Syslog   = 5
+      | facilityToInt Lpr      = 6
+      | facilityToInt New      = 7
+      | facilityToInt Uucp     = 8
+      | facilityToInt Cron     = 9
+      | facilityToInt Authpriv = 10
+      | facilityToInt Ftp      = 11
+      | facilityToInt Ntp      = 12
+      | facilityToInt LogAudit = 13
+      | facilityToInt LogAlert = 14
+      | facilityToInt Clock    = 15
+      | facilityToInt Local0   = 16
+      | facilityToInt Local1   = 17
+      | facilityToInt Local2   = 18
+      | facilityToInt Local3   = 19
+      | facilityToInt Local4   = 20
+      | facilityToInt Local5   = 21
+      | facilityToInt Local6   = 22
+      | facilityToInt Local7   = 23
+
+    fun intToFacility 0  = SOME Kern
+      | intToFacility 1  = SOME User
+      | intToFacility 2  = SOME Mail
+      | intToFacility 3  = SOME Daemon
+      | intToFacility 4  = SOME Auth
+      | intToFacility 5  = SOME Syslog
+      | intToFacility 6  = SOME Lpr
+      | intToFacility 7  = SOME New
+      | intToFacility 8  = SOME Uucp
+      | intToFacility 9  = SOME Cron
+      | intToFacility 10 = SOME Authpriv
+      | intToFacility 11 = SOME Ftp
+      | intToFacility 12 = SOME Ntp
+      | intToFacility 13 = SOME LogAudit
+      | intToFacility 14 = SOME LogAlert
+      | intToFacility 15 = SOME Clock
+      | intToFacility 16 = SOME Local0
+      | intToFacility 17 = SOME Local1
+      | intToFacility 18 = SOME Local2
+      | intToFacility 19 = SOME Local3
+      | intToFacility 20 = SOME Local4
+      | intToFacility 21 = SOME Local5
+      | intToFacility 22 = SOME Local6
+      | intToFacility 23 = SOME Local7
+      | intToFacility _  = NONE
+
+    fun severityToInt Emerg   = 0
+      | severityToInt Alert   = 1
+      | severityToInt Crit    = 2
+      | severityToInt Err     = 3
+      | severityToInt Warning = 4
+      | severityToInt Notice  = 5
+      | severityToInt Info    = 6
+      | severityToInt Debug   = 7
+
+    fun intToSeverity 0 = SOME Emerg
+      | intToSeverity 1 = SOME Alert
+      | intToSeverity 2 = SOME Crit
+      | intToSeverity 3 = SOME Err
+      | intToSeverity 4 = SOME Warning
+      | intToSeverity 5 = SOME Notice
+      | intToSeverity 6 = SOME Info
+      | intToSeverity 7 = SOME Debug
+      | intToSeverity _ = NONE
+
+    fun priToString (facility, severity) =
+          let
+            val added = facilityToInt facility * 8 + severityToInt severity
+          in
+            "<" ^ Int.toString added ^ ">"
+          end
+
+    fun intToPri i =
+          let
+            val hi = i div 8
+            val lo = i mod 8
+          in
+            intToFacility hi >>= (fn facility =>
+            intToSeverity lo >>= (fn severity =>
+            SOME (facility, severity)))
+          end
+
+    infix ||
+    fun (a || b) input1 strm =
+          case a input1 strm of
+               SOME x => SOME x
+             | NONE => b input1 strm
+    infix --
+    fun (a -- b) input1 strm =
+          a input1 strm >>= (fn (e1, strm) =>
+          b input1 strm >>= (fn (e2, strm) =>
+          SOME ((e1, e2), strm)))
+    fun flattenTriple ((e1, e2), e3) = SOME (e1, e2, e3)
+    fun flatten4Tuple (((e1, e2), e3), e4) = SOME (e1, e2, e3, e4)
+    fun flatten5Tuple ((((e1, e2), e3), e4), e5) = SOME (e1, e2, e3, e4, e5)
+    fun transform a f input1 strm =
+          case a input1 strm of
+               NONE => NONE
+             | SOME (elem, strm') =>
+                 case f elem of
+                      NONE => NONE
+                    | SOME elem' => SOME (elem', strm')
+    infix >>
+    fun (a >> f) input1 strm = transform a f input1 strm
+    fun repeat class input1 strm =
+          let
+            fun loop strm acc =
+                  case class input1 strm of
+                       SOME (c, strm') => loop strm' (c::acc)
+                     | NONE => SOME (rev acc, strm)
+          in
+            loop strm []
+          end
+    fun many0 class input1 strm = (
+          (repeat class >> (fn acc => SOME acc)))
+          input1 strm
+    fun many1 class input1 strm = (
+          (class -- repeat class)
+          >> (fn (car, cdr) => SOME (car::cdr)))
+          input1 strm
+    fun opt class input1 strm =
+          case class input1 strm of
+               NONE => SOME (NONE, strm)
+             | SOME (x, strm') => SOME (SOME x, strm')
+    fun pred p input1 strm = (* consume an element that satisfies p *)
+          case input1 strm of
+               NONE => NONE
+             | SOME (c', strm') =>
+                 if p c' then SOME (c', strm') else NONE
+    fun any input1 strm = pred (fn _ => true) input1 strm
+    fun char c input1 strm = pred (fn c' => c' = c) input1 strm
+    fun string s input1 strm =
+          let
+            val substring = Substring.full s
+            fun loop (substring, strm) =
+                  case Substring.getc substring of
+                       NONE => SOME (s, strm)
+                     | SOME (c, substring') =>
+                         case input1 strm of
+                              NONE => NONE
+                            | SOME (c', strm') =>
+                                if c' = c then loop (substring', strm') else NONE
+          in
+            loop (substring, strm)
+          end
+    fun space input1 strm = char #" " input1 strm
+    fun digit input1 strm = pred Char.isDigit input1 strm
+    fun alpha input1 strm = pred Char.isAlpha input1 strm
+    fun int input1 strm =
+          ((many1 digit) >> (Int.fromString o implode)) input1 strm
+    fun pri input1 strm = (
+          (char #"<" -- int -- char #">")
+          >> flattenTriple
+          >> (fn (_, i, _) => intToPri i))
+          input1 strm
+    fun stringToMonth "Jan" = SOME Date.Jan
+      | stringToMonth "Feb" = SOME Date.Feb
+      | stringToMonth "Mar" = SOME Date.Mar
+      | stringToMonth "Apr" = SOME Date.Apr
+      | stringToMonth "May" = SOME Date.May
+      | stringToMonth "Jun" = SOME Date.Jun
+      | stringToMonth "Jul" = SOME Date.Jul
+      | stringToMonth "Aug" = SOME Date.Aug
+      | stringToMonth "Sep" = SOME Date.Sep
+      | stringToMonth "Oct" = SOME Date.Oct
+      | stringToMonth "Nov" = SOME Date.Nov
+      | stringToMonth "Dec" = SOME Date.Dec
+      | stringToMonth _ = NONE
+    fun month input1 strm = ((
+             string "Jan"
+          || string "Feb"
+          || string "Mar"
+          || string "Apr"
+          || string "May"
+          || string "Jun"
+          || string "Jul"
+          || string "Aug"
+          || string "Sep"
+          || string "Oct"
+          || string "Nov"
+          || string "Dec")
+          >> stringToMonth) input1 strm
+    fun twoDigitsToInt (c1, c2) = Int.fromString (implode [c1, c2])
+    fun day input1 strm =
+          ((space -- digit) || (digit -- digit) >> twoDigitsToInt) input1 strm
+    fun twoDigits input1 strm =
+          ((digit -- digit) >> twoDigitsToInt) input1 strm
+    fun time input1 strm = (
+          (twoDigits -- char #":" -- twoDigits -- char #":" -- twoDigits)
+          >> flatten5Tuple
+          >> (fn (hour, _, minute, _, second) => SOME (hour, minute, second)))
+          input1 strm
+    fun timestamp input1 strm = (
+          (month -- space -- day -- space -- time)
+          >> flatten5Tuple
+          >> (fn (month, _, day, _, (hour, minute, second)) =>
+               SOME (Date.date {
+                 year = 1970, (* year not present in RFC3164 timestamp *)
+                 month = month,
+                 day = day,
+                 hour = hour,
+                 minute = minute,
+                 second = second,
+                 offset = NONE })))
+          input1 strm
+    fun hostname input1 strm = (
+          (many1 (digit || alpha || char #"." || char #"-" || char #":"))
+          >> (fn cs => SOME (implode cs)))
+          input1 strm
+    fun header input1 strm = (
+          (timestamp -- space -- hostname -- space)
+          >> flatten4Tuple
+          >> (fn (timestamp, _, hostname, _) => SOME (timestamp, hostname)))
+          input1 strm
+    fun msg input1 strm = (
+          (many0 any) >> (fn cs => SOME (implode cs)))
+          input1 strm
+    fun priAndHeader input1 strm = (
+          (pri -- header -- msg)
+          >> flattenTriple
+          >> (fn (pri, header, msg) =>
+                SOME (SOME pri, SOME header, msg)))
+          input1 strm
+    fun priOnly input1 strm = (
+          (pri -- msg)
+          >> (fn (pri, msg) =>
+                SOME (SOME pri, NONE, msg)))
+          input1 strm
+    fun noPri input1 strm = (
+          msg
+          >> (fn msg =>
+                SOME (NONE, NONE, msg)))
+          input1 strm
+    fun message input1 strm = (priAndHeader || priOnly || noPri) input1 strm
+
+    fun fromString s = case message Substring.getc (Substring.full s) of
+                            NONE => NONE
+                          | SOME (s, _) => SOME s
+
+    fun timestampToString timestamp =
+          Date.fmt "%b " timestamp ^
+          (if Date.day timestamp < 10 then " " else "") ^
+          Int.toString (Date.day timestamp) ^
+          Date.fmt " %H:%M:%S" timestamp
+
+    fun toString (SOME pri, SOME (timestamp, host), msg) =
+          priToString pri ^ timestampToString timestamp ^ " " ^ host ^ " " ^ msg
+      | toString (SOME pri, NONE, msg) =
+          priToString pri ^ msg
+      | toString (NONE, NONE, msg) =
+          msg
+      | toString (NONE, SOME (timestamp, host), msg) =
+          "<13>" ^ timestampToString timestamp ^ " " ^ host ^ " " ^ msg
+  end
 
   val toSlice = Word8VectorSlice.full o Byte.stringToBytes
 
   structure Remote = struct
     fun construct (pri, (timestamp, hostname), msg) =
           let
-            val pri' = priToString pri
+            val pri' = Message.priToString pri
             val month = Date.fmt "%b" timestamp
             val day =
                 let val day = Int.toString (Date.day timestamp) in
@@ -204,7 +399,7 @@ end = struct
           let
             val sock_addr = UnixSock.toAddr "/dev/log"
             val sock = UnixSock.DGrm.socket ()
-            val message = priToString pri ^ msg
+            val message = Message.priToString pri ^ msg
           in
             Socket.sendVecTo (sock, sock_addr, toSlice message)
           end
