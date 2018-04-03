@@ -384,14 +384,6 @@ end = struct
           end
 
     val log = log' (fn () => INetSock.UDP.socket ()) (fn () => Date.fromTimeLocal (Time.now ()))
-
-    fun socketFromAddr addr =
-          let
-            val sock = INetSock.UDP.socket ()
-            val _ = Socket.bind (sock, addr)
-          in
-            sock
-          end
   end
 
   structure Local = struct
@@ -412,6 +404,16 @@ end = struct
     val notice  = log (User, Notice)
     val info    = log (User, Info)
     val debug   = log (User, Debug)
+  end
+
+  structure Server = struct
+    fun receiveLoop (sock, ch) =
+          let
+            val (vec, _) = Socket.recvVecFrom (sock, 1024)
+          in
+            CML.send (ch, Byte.bytesToString vec);
+            receiveLoop (sock, ch)
+          end
 
     fun socketFromPath path =
           let
@@ -450,22 +452,20 @@ end = struct
             else
               create path
           end
-  end
 
-  structure Server = struct
-    fun receiveLoop (sock, ch) =
+    fun socketFromAddr addr =
           let
-            val (vec, _) = Socket.recvVecFrom (sock, 1024)
+            val sock = INetSock.UDP.socket ()
+            val _ = Socket.bind (sock, addr)
           in
-            CML.send (ch, Byte.bytesToString vec);
-            receiveLoop (sock, ch)
+            sock
           end
 
     fun start (path, addr) =
           let
             val ch = CML.channel ()
-            val localSock = Local.socketFromPath path
-            val remoteSock = Remote.socketFromAddr addr
+            val localSock = socketFromPath path
+            val remoteSock = socketFromAddr addr
             val receiveLocal = CML.spawn (fn () => receiveLoop (localSock, ch))
             val receiveRemote = CML.spawn (fn () => receiveLoop (remoteSock, ch))
             fun loop () =
