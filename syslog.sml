@@ -32,7 +32,7 @@ structure Syslog :> sig
       type header = Date.date * string
       type message = pri option * header option * string
 
-      val fromString : string -> message option
+      val fromString : string -> message
       val toString : message -> string
   end
 
@@ -337,8 +337,8 @@ end = struct
     fun message input1 strm = (priAndHeader || priOnly || noPri) input1 strm
 
     fun fromString s = case message Substring.getc (Substring.full s) of
-                            NONE => NONE
-                          | SOME (s, _) => SOME s
+                            NONE => raise Fail "should never reach here"
+                          | SOME (s, _) => s
 
     fun timestampToString timestamp =
           Date.fmt "%b " timestamp ^
