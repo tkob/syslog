@@ -410,8 +410,10 @@ end = struct
     fun receiveLoop (sock, ch) =
           let
             val (vec, _) = Socket.recvVecFrom (sock, 1024)
+            val s = Byte.bytesToString vec
+            val message = Message.fromString s
           in
-            CML.send (ch, Byte.bytesToString vec);
+            CML.send (ch, message);
             receiveLoop (sock, ch)
           end
 
@@ -472,7 +474,7 @@ end = struct
                   let
                     val message = CML.recv ch
                   in
-                    print message;
+                    print (Message.toString message);
                     loop ()
                   end
           in
