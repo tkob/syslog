@@ -247,8 +247,11 @@ end = struct
     fun space input1 strm = char #" " input1 strm
     fun digit input1 strm = pred Char.isDigit input1 strm
     fun alpha input1 strm = pred Char.isAlpha input1 strm
-    fun int input1 strm =
-          ((many1 digit) >> (Int.fromString o implode)) input1 strm
+    fun int input1 strm = (
+          (many1 digit)
+          >> Option.filter (fn cs => cs = [#"0"] orelse hd cs <> #"0")
+          >> (Int.fromString o implode))
+          input1 strm
     fun pri input1 strm = (
           (char #"<" -- int -- char #">")
           >> flattenTriple
