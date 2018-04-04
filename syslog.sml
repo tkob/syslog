@@ -481,6 +481,5 @@ end = struct
           in
             loop ()
           end
-          handle OS.SysErr (m, _) => print ("OS.SysErr " ^ m ^ "\n")
   end
 end
