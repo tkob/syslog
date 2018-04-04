@@ -6,3 +6,4 @@ is
   $cml/cml.cm
 
   syslog.sml
+  syslogd.sml
