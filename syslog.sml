@@ -56,8 +56,6 @@ structure Syslog :> sig
   structure Server : sig
     val start : string * INetSock.sock_addr -> unit
   end
-
-  val stringToAddr : string -> INetSock.sock_addr option
 end = struct
   datatype facility = Kern
                     | User
@@ -482,6 +480,12 @@ end = struct
           end
           handle OS.SysErr (m, _) => print ("OS.SysErr " ^ m ^ "\n")
   end
+end
+
+structure Syslogd = struct
+  infix >>=
+  fun (SOME x) >>= k = k x
+    | NONE     >>= k = NONE
 
   fun stringToAddr hostPort =
         let
@@ -495,14 +499,12 @@ end = struct
           Int.fromString port       >>= (fn port' =>
           SOME (INetSock.toAddr (host', port')))))
         end
-end
 
-structure Syslogd = struct
   fun main (name : string, argv : string list) =
         let
           fun boot () = (
             print "starting syslogd\n";
-            Syslog.Server.start ("log", valOf (Syslog.stringToAddr ("0.0.0.0:5140")))
+            Syslog.Server.start ("log", valOf (stringToAddr ("0.0.0.0:5140")))
             )
         in
           print "booting\n";
