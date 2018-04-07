@@ -464,22 +464,35 @@ end = struct
             sock
           end
 
+    fun fileWriter (fd, ch) =
+          let
+            val message = CML.recv ch
+            val string = Message.toString message ^ "\n"
+            val vec = Word8VectorSlice.full (Byte.stringToBytes string)
+            val writtenBytes = Posix.IO.writeVec (fd, vec)
+          in
+            fileWriter (fd, ch)
+          end
+
+    fun outputFileFromPath path =
+          let
+            open Posix.FileSys
+            val mode600 = S.flags [S.irusr, S.iwusr]
+          in
+            createf (path, O_WRONLY, O.flags [O.append, O.sync], mode600)
+          end
+
     fun start (path, addr) =
           let
             val ch = CML.channel ()
+            val fd = outputFileFromPath "messages"
+            val fileWriter = CML.spawn (fn () => fileWriter (fd, ch))
             val localSock = socketFromPath path
             val remoteSock = socketFromAddr addr
             val receiveLocal = CML.spawn (fn () => receiveLoop (localSock, ch))
             val receiveRemote = CML.spawn (fn () => receiveLoop (remoteSock, ch))
-            fun loop () =
-                  let
-                    val message = CML.recv ch
-                  in
-                    print (Message.toString message);
-                    loop ()
-                  end
           in
-            loop ()
+            ()
           end
   end
 end
