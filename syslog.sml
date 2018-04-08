@@ -145,6 +145,36 @@ end = struct
       | intToFacility 23 = SOME Local7
       | intToFacility _  = NONE
 
+    fun stringToFacility' "kern"     = SOME Kern
+      | stringToFacility' "user"     = SOME User
+      | stringToFacility' "mail"     = SOME Mail
+      | stringToFacility' "daemon"   = SOME Daemon
+      | stringToFacility' "auth"     = SOME Auth
+      | stringToFacility' "security" = SOME Auth
+      | stringToFacility' "syslog"   = SOME Syslog
+      | stringToFacility' "lpr"      = SOME Lpr
+      | stringToFacility' "news"     = SOME New
+      | stringToFacility' "uucp"     = SOME Uucp
+      | stringToFacility' "cron"     = SOME Cron
+      | stringToFacility' "authpriv" = SOME Authpriv
+      (*
+      | stringToFacility' ""         = SOME Ftp
+      | stringToFacility' ""         = SOME Ntp
+      | stringToFacility' ""         = SOME LogAudit
+      | stringToFacility' ""         = SOME LogAlert
+      | stringToFacility' ""         = SOME Clock
+      *)
+      | stringToFacility' "local0"   = SOME Local0
+      | stringToFacility' "local1"   = SOME Local1
+      | stringToFacility' "local2"   = SOME Local2
+      | stringToFacility' "local3"   = SOME Local3
+      | stringToFacility' "local4"   = SOME Local4
+      | stringToFacility' "local5"   = SOME Local5
+      | stringToFacility' "local6"   = SOME Local6
+      | stringToFacility' "local7"   = SOME Local7
+      | stringToFacility' _  = NONE
+    fun stringToFacility s = stringToFacility' (String.map Char.toLower s)
+
     fun severityToInt Emerg   = 0
       | severityToInt Alert   = 1
       | severityToInt Crit    = 2
@@ -163,6 +193,20 @@ end = struct
       | intToSeverity 6 = SOME Info
       | intToSeverity 7 = SOME Debug
       | intToSeverity _ = NONE
+
+    fun stringToSeverity' "emerge"  = SOME Emerg
+      | stringToSeverity' "panic"   = SOME Emerg
+      | stringToSeverity' "alert"   = SOME Alert
+      | stringToSeverity' "crit"    = SOME Crit
+      | stringToSeverity' "err"     = SOME Err
+      | stringToSeverity' "error"   = SOME Err
+      | stringToSeverity' "warning" = SOME Warning
+      | stringToSeverity' "warn"    = SOME Warning
+      | stringToSeverity' "notice"  = SOME Notice
+      | stringToSeverity' "info"    = SOME Info
+      | stringToSeverity' "debug"   = SOME Debug
+      | stringToSeverity' _ = NONE
+    fun stringToSeverity s = stringToSeverity' (String.map Char.toLower s)
 
     fun priToString (facility, severity) =
           let
