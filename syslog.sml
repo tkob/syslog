@@ -53,6 +53,19 @@ structure Syslog :> sig
     val debug   : string -> unit
   end
 
+  structure Conf : sig
+    exception Conf of string
+
+    datatype facility_pattern = Facility of facility | AnyFacility
+    datatype priority_pattern = GreaterThanOrEqual of severity | AnyPriority | NonePriority
+    type selector = facility_pattern list * priority_pattern
+    datatype action = File of string
+    type rule = selector list * action
+
+    val parseRule : Substring.substring -> rule
+    val load : ('strm -> (string * 'strm) option) -> 'strm -> rule list
+  end
+
   structure Server : sig
     val start : string * INetSock.sock_addr -> unit
   end
@@ -449,6 +462,88 @@ end = struct
     val notice  = log (User, Notice)
     val info    = log (User, Info)
     val debug   = log (User, Debug)
+  end
+
+  structure Conf = struct
+    exception Conf of string
+
+    datatype facility_pattern = Facility of facility | AnyFacility
+    datatype priority_pattern = GreaterThanOrEqualPriority of severity | AnyPriority | NonePriority
+    type selector = facility_pattern list * priority_pattern
+    datatype action = File of string
+    type rule = selector list * action
+
+    fun parseFacility s =
+          if s = "*" then AnyFacility
+          else
+            case Message.stringToFacility s of
+                 NONE => raise Conf s
+               | SOME facility => Facility facility
+
+    fun parseFacilities s =
+          let
+            val facilities = Substring.tokens (fn c => c = #",") s
+          in
+            map (parseFacility o Substring.string) facilities
+          end
+
+    fun parseSelector s =
+          let
+            val (facilities, priority) =
+              case Substring.tokens (fn c => c = #".") s of
+                   [facilities, priority] =>
+                     (facilities, Substring.string priority)
+                 | _ => raise Conf (Substring.string s)
+            val facilities = parseFacilities facilities
+            val priority =
+              if priority = "*" then AnyPriority
+              else if priority = "none" then NonePriority
+              else
+                case Message.stringToSeverity priority of
+                     NONE => raise Conf priority
+                   | SOME priority => GreaterThanOrEqual priority
+          in
+            (facilities, priority)
+          end
+
+    fun parseSelectors s =
+          let
+            val selectors = Substring.tokens (fn c => c = #";") s
+          in
+            map parseSelector selectors
+          end
+
+    fun parseAction s = File (Substring.string s)
+
+    fun parseRule s =
+          let
+            val (selectors, action) =
+              case Substring.tokens Char.isSpace s of
+                   [selectors, action] => (selectors, action)
+                 | _ => raise Conf (Substring.string s)
+          in
+            (parseSelectors selectors, parseAction action)
+          end
+
+    fun load inputLine strm =
+          let
+            fun processLine strm rules =
+                  case inputLine strm of
+                       NONE => rev rules
+                     | SOME (line, strm') =>
+                         let
+                           val line = Substring.full line
+                           val line = Substring.dropl Char.isSpace line
+                         in
+                           if Substring.isEmpty line orelse Substring.sub (line, 0) = #"#"
+                           then
+                             processLine strm' rules
+                           else
+                             processLine strm' (parseRule line::rules)
+                         end
+          in
+            processLine strm []
+          end
   end
 
   structure Server = struct
