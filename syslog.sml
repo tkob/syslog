@@ -57,7 +57,7 @@ structure Syslog :> sig
     exception Conf of string
 
     datatype facility_pattern = Facility of facility | AnyFacility
-    datatype priority_pattern = GreaterThanOrEqual of severity | AnyPriority | NonePriority
+    datatype priority_pattern = GreaterThanOrEqualPriority of severity | AnyPriority | NonePriority
     type selector = facility_pattern list * priority_pattern
     datatype action = File of string
     type rule = selector list * action
@@ -501,7 +501,7 @@ end = struct
               else
                 case Message.stringToSeverity priority of
                      NONE => raise Conf priority
-                   | SOME priority => GreaterThanOrEqual priority
+                   | SOME priority => GreaterThanOrEqualPriority priority
           in
             (facilities, priority)
           end
