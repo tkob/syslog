@@ -479,6 +479,7 @@ end = struct
             open Posix.FileSys
             val mode600 = S.flags [S.irusr, S.iwusr]
           in
+            (* open path, create if it does not exist *)
             createf (path, O_WRONLY, O.flags [O.append, O.sync], mode600)
           end
 
