@@ -197,6 +197,11 @@ end = struct
       | severityToInt Info    = 6
       | severityToInt Debug   = 7
 
+    fun gt (s1, s2) = severityToInt s1 <  severityToInt s2
+    fun ge (s1, s2) = severityToInt s1 <= severityToInt s2
+    fun lt (s1, s2) = severityToInt s1 >  severityToInt s2
+    fun le (s1, s2) = severityToInt s1 >= severityToInt s2
+
     fun intToSeverity 0 = SOME Emerg
       | intToSeverity 1 = SOME Alert
       | intToSeverity 2 = SOME Crit
