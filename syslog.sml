@@ -64,6 +64,7 @@ structure Syslog :> sig
 
     val parseRule : Substring.substring -> rule
     val load : ('strm -> (string * 'strm) option) -> 'strm -> rule list
+    val run : rule list -> pri -> action list
   end
 
   structure Server : sig
@@ -548,6 +549,39 @@ end = struct
                          end
           in
             processLine strm []
+          end
+
+    (* match at least one of the comma-delimited facilities? *)
+    fun matchFacilities [] _ = false
+      | matchFacilities (AnyFacility::facilities) _ = true
+      | matchFacilities (Facility facility::facilities) facility' =
+          if facility = facility' then true
+          else matchFacilities facilities facility'
+
+    fun matchSelectors [] _ matched = matched
+      | matchSelectors ((facilities, priority)::selectors) (pri as (facility, severity)) matched =
+          if matchFacilities facilities facility then
+            (* update(override) matched status *)
+            case priority of
+                 GreaterThanOrEqualPriority severity' =>
+                   matchSelectors selectors pri (Message.ge (severity, severity'))
+               | AnyPriority =>
+                   matchSelectors selectors pri true
+               | NonePriority =>
+                   matchSelectors selectors pri false
+          else
+            matchSelectors selectors pri matched
+
+    fun run rules pri =
+          let
+            fun run' [] actions = rev actions
+              | run' ((selectors, action)::rules) actions =
+                  if matchSelectors selectors pri false then
+                    run' rules (action::actions)
+                  else
+                    run' rules actions
+          in
+            run' rules []
           end
   end
 
