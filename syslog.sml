@@ -65,6 +65,7 @@ structure Syslog :> sig
     val parseRule : Substring.substring -> rule
     val load : ('strm -> (string * 'strm) option) -> 'strm -> rule list
     val run : rule list -> pri -> action list
+    val app : (action -> unit) -> rule list -> pri -> unit
   end
 
   structure Server : sig
@@ -572,17 +573,14 @@ end = struct
           else
             matchSelectors selectors pri matched
 
-    fun run rules pri =
-          let
-            fun run' [] actions = rev actions
-              | run' ((selectors, action)::rules) actions =
-                  if matchSelectors selectors pri false then
-                    run' rules (action::actions)
-                  else
-                    run' rules actions
-          in
-            run' rules []
-          end
+    fun fold f actions [] pri = actions
+      | fold f actions ((selectors, action)::rules) pri =
+          if matchSelectors selectors pri false then
+            fold f (f (action, actions)) rules pri
+          else
+            fold f actions rules pri
+    fun run rules pri = rev (fold (op ::) [] rules pri)
+    fun app f rules pri = fold (fn (x, ()) => (f x)) () rules pri
   end
 
   structure Server = struct
