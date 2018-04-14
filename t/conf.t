@@ -4,12 +4,10 @@
     ...
     val it = true : bool
 
-    - fun inputLine [] = NONE | inputLine (l::ls) = SOME (l, ls);
+    - val inputLine = TextIO.StreamIO.inputLine;
     ...
-    val inputLine = fn : 'a list -> ('a * 'a list) option
-    - val lines = String.fields (fn c => c = #"\n" orelse c = #"\r");
+    - val lines = TextIO.getInstream o TextIO.openString;
     ...
-    val lines = fn : string -> string list
 
 # All crit or severer messages, except for kern
 
