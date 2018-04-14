@@ -69,7 +69,7 @@ structure Syslog :> sig
   end
 
   structure Server : sig
-    val start : string * INetSock.sock_addr -> unit
+    val start : string * INetSock.sock_addr * Conf.rule list -> unit
   end
 end = struct
   datatype facility = Kern
@@ -584,16 +584,6 @@ end = struct
   end
 
   structure Server = struct
-    fun receiveLoop (sock, ch) =
-          let
-            val (vec, _) = Socket.recvVecFrom (sock, 1024)
-            val s = Byte.bytesToString vec
-            val message = Message.fromString s
-          in
-            CML.send (ch, message);
-            receiveLoop (sock, ch)
-          end
-
     fun socketFromPath path =
           let
             val addr = UnixSock.toAddr path
@@ -640,16 +630,6 @@ end = struct
             sock
           end
 
-    fun fileWriter (fd, ch) =
-          let
-            val message = CML.recv ch
-            val string = Message.toString message ^ "\n"
-            val vec = Word8VectorSlice.full (Byte.stringToBytes string)
-            val writtenBytes = Posix.IO.writeVec (fd, vec)
-          in
-            fileWriter (fd, ch)
-          end
-
     fun outputFileFromPath path =
           let
             open Posix.FileSys
@@ -659,15 +639,68 @@ end = struct
             createf (path, O_WRONLY, O.flags [O.append, O.sync], mode600)
           end
 
-    fun start (path, addr) =
+    local
+      fun uniq' [] acc = acc
+        | uniq' (x::xs) acc =
+            if List.exists (fn x' => x' = x) acc
+            then uniq' xs acc
+            else uniq' xs (x::acc)
+    in
+      fun uniq xs = uniq' xs []
+    end
+
+    fun start (path, addr, rules) =
           let
-            val ch = CML.channel ()
-            val fd = outputFileFromPath "messages"
-            val fileWriter = CML.spawn (fn () => fileWriter (fd, ch))
+            infix |>
+            fun (x |> f) = f x
+            val actions = uniq (map #2 rules)
+            val actionToCh = actions |> map (fn action =>
+              let
+                val ch = CML.channel ()
+                val writer =
+                  case action of
+                       Conf.File fileName =>
+                         let
+                           val fd = outputFileFromPath fileName
+                           fun writer () =
+                                 let
+                                   val message = CML.recv ch
+                                   val string = Message.toString message ^ "\n"
+                                   val vec = Word8VectorSlice.full (Byte.stringToBytes string)
+                                   val writtenBytes = Posix.IO.writeVec (fd, vec)
+                                 in
+                                   writer ()
+                                 end
+                         in
+                           writer
+                         end
+              in
+                CML.spawn writer;
+                (action, ch)
+              end)
+            fun lookupCh [] action =
+                  raise Fail "action not found: should never reach here"
+              | lookupCh ((action, ch)::actions) action' =
+                  if action = action' then ch
+                  else lookupCh actions action'
+            fun receiveLoop sock =
+                  let
+                    val (vec, _) = Socket.recvVecFrom (sock, 1024)
+                    val s = Byte.bytesToString vec
+                    val message = Message.fromString s
+                    val pri = case #1 message of
+                                   NONE =>(User, Info)
+                                 | SOME pri => pri
+                    fun sendToCh action =
+                          CML.send (lookupCh actionToCh action, message)
+                  in
+                    Conf.app sendToCh rules pri;
+                    receiveLoop sock
+                  end
             val localSock = socketFromPath path
             val remoteSock = socketFromAddr addr
-            val receiveLocal = CML.spawn (fn () => receiveLoop (localSock, ch))
-            val receiveRemote = CML.spawn (fn () => receiveLoop (remoteSock, ch))
+            val receiveLocal = CML.spawn (fn () => receiveLoop localSock)
+            val receiveRemote = CML.spawn (fn () => receiveLoop remoteSock)
           in
             ()
           end

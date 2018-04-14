@@ -18,9 +18,12 @@ structure Syslogd = struct
 
   fun main (name : string, argv : string list) =
         let
+          val inputLine = TextIO.StreamIO.inputLine
+          val lines = TextIO.getInstream o TextIO.openString
+          val rules = Syslog.Conf.load inputLine (lines "*.* messages")
           fun boot () = (
             print "starting syslogd\n";
-            Syslog.Server.start ("log", valOf (stringToAddr ("0.0.0.0:5140"))))
+            Syslog.Server.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules))
             handle OS.SysErr (m, _) => print ("OS.SysErr " ^ m ^ "\n")
         in
           print "booting\n";
