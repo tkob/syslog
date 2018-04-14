@@ -24,7 +24,7 @@ structure Syslogd = struct
           fun boot () = (
             print "starting syslogd\n";
             Syslog.Server.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules))
-            handle OS.SysErr (m, _) => print ("OS.SysErr " ^ m ^ "\n")
+            handle e => print (exnMessage e ^ "\n")
         in
           print "booting\n";
           RunCML.doit (boot, NONE)
