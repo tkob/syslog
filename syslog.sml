@@ -683,6 +683,8 @@ end = struct
               | lookupCh ((action, ch)::actions) action' =
                   if action = action' then ch
                   else lookupCh actions action'
+            fun sendToCh message action =
+                  CML.send (lookupCh actionToCh action, message)
             fun receiveLoop sock =
                   let
                     val (vec, _) = Socket.recvVecFrom (sock, 1024)
@@ -691,18 +693,18 @@ end = struct
                     val pri = case #1 message of
                                    NONE =>(User, Info)
                                  | SOME pri => pri
-                    fun sendToCh action =
-                          CML.send (lookupCh actionToCh action, message)
                   in
-                    Conf.app sendToCh rules pri;
+                    Conf.app (sendToCh message) rules pri;
                     receiveLoop sock
                   end
             val localSock = socketFromPath path
             val remoteSock = socketFromAddr addr
             val receiveLocal = CML.spawn (fn () => receiveLoop localSock)
             val receiveRemote = CML.spawn (fn () => receiveLoop remoteSock)
+            val syslogInfo = (Syslog, Info)
+            val startMessage = (SOME syslogInfo, NONE, "syslogd started")
           in
-            ()
+            Conf.app (sendToCh startMessage) rules syslogInfo
           end
   end
 end
