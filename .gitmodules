@@ -1,0 +1,3 @@
+[submodule "aws4sml"]
+	path = aws4sml
+	url = https://github.com/tkob/aws4sml.git
