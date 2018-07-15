@@ -108,7 +108,7 @@ end = struct
                   val s = Byte.bytesToString vec
                   val message = Syslog.Message.fromString s
                   val pri = case #1 message of
-                                 NONE =>(Syslog.Facility.User, Syslog.Info)
+                                 NONE =>(Syslog.Facility.User, Syslog.Severity.Info)
                                | SOME pri => pri
                 in
                   Syslog.Conf.app (sendToCh message) rules pri;
@@ -118,7 +118,7 @@ end = struct
           val remoteSock = socketFromAddr addr
           val receiveLocal = CML.spawn (fn () => receiveLoop localSock)
           val receiveRemote = CML.spawn (fn () => receiveLoop remoteSock)
-          val syslogInfo = (Syslog.Facility.Syslog, Syslog.Info)
+          val syslogInfo = (Syslog.Facility.Syslog, Syslog.Severity.Info)
           val startMessage = (SOME syslogInfo, NONE, "syslogd started")
         in
           Syslog.Conf.app (sendToCh startMessage) rules syslogInfo

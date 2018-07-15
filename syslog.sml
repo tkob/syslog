@@ -30,9 +30,19 @@ structure Syslog :> sig
     val fromString : string -> facility option
   end
 
-  datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
+  structure Severity : sig
+    datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
 
-  type pri = Facility.facility * severity
+    val toInt : severity -> int
+    val fromInt : int -> severity option
+    val gt : severity * severity -> bool
+    val ge : severity * severity -> bool
+    val lt : severity * severity -> bool
+    val le : severity * severity -> bool
+    val fromString : string -> severity option
+  end
+
+  type pri = Facility.facility * Severity.severity
 
   structure Message : sig
       type header = Date.date * string
@@ -63,7 +73,7 @@ structure Syslog :> sig
     exception Conf of string
 
     datatype facility_pattern = Facility of Facility.facility | AnyFacility
-    datatype priority_pattern = GreaterThanOrEqualPriority of severity | AnyPriority | NonePriority
+    datatype priority_pattern = GreaterThanOrEqualPriority of Severity.severity | AnyPriority | NonePriority
     type selector = facility_pattern list * priority_pattern
     datatype action = File of string
     type rule = selector list * action
@@ -182,9 +192,49 @@ end = struct
     fun fromString s = fromString' (String.map Char.toLower s)
   end
 
-  datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
+  structure Severity = struct
+    datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
 
-  type pri = Facility.facility * severity
+    fun toInt Emerg   = 0
+      | toInt Alert   = 1
+      | toInt Crit    = 2
+      | toInt Err     = 3
+      | toInt Warning = 4
+      | toInt Notice  = 5
+      | toInt Info    = 6
+      | toInt Debug   = 7
+
+    fun gt (s1, s2) = toInt s1 <  toInt s2
+    fun ge (s1, s2) = toInt s1 <= toInt s2
+    fun lt (s1, s2) = toInt s1 >  toInt s2
+    fun le (s1, s2) = toInt s1 >= toInt s2
+
+    fun fromInt 0 = SOME Emerg
+      | fromInt 1 = SOME Alert
+      | fromInt 2 = SOME Crit
+      | fromInt 3 = SOME Err
+      | fromInt 4 = SOME Warning
+      | fromInt 5 = SOME Notice
+      | fromInt 6 = SOME Info
+      | fromInt 7 = SOME Debug
+      | fromInt _ = NONE
+
+    fun fromString' "emerge"  = SOME Emerg
+      | fromString' "panic"   = SOME Emerg
+      | fromString' "alert"   = SOME Alert
+      | fromString' "crit"    = SOME Crit
+      | fromString' "err"     = SOME Err
+      | fromString' "error"   = SOME Err
+      | fromString' "warning" = SOME Warning
+      | fromString' "warn"    = SOME Warning
+      | fromString' "notice"  = SOME Notice
+      | fromString' "info"    = SOME Info
+      | fromString' "debug"   = SOME Debug
+      | fromString' _ = NONE
+    fun fromString s = fromString' (String.map Char.toLower s)
+  end
+
+  type pri = Facility.facility * Severity.severity
 
   infix >>=
   fun (SOME x) >>= k = k x
@@ -194,47 +244,9 @@ end = struct
     type header = Date.date * string
     type message = pri option * header option * string
 
-    fun severityToInt Emerg   = 0
-      | severityToInt Alert   = 1
-      | severityToInt Crit    = 2
-      | severityToInt Err     = 3
-      | severityToInt Warning = 4
-      | severityToInt Notice  = 5
-      | severityToInt Info    = 6
-      | severityToInt Debug   = 7
-
-    fun gt (s1, s2) = severityToInt s1 <  severityToInt s2
-    fun ge (s1, s2) = severityToInt s1 <= severityToInt s2
-    fun lt (s1, s2) = severityToInt s1 >  severityToInt s2
-    fun le (s1, s2) = severityToInt s1 >= severityToInt s2
-
-    fun intToSeverity 0 = SOME Emerg
-      | intToSeverity 1 = SOME Alert
-      | intToSeverity 2 = SOME Crit
-      | intToSeverity 3 = SOME Err
-      | intToSeverity 4 = SOME Warning
-      | intToSeverity 5 = SOME Notice
-      | intToSeverity 6 = SOME Info
-      | intToSeverity 7 = SOME Debug
-      | intToSeverity _ = NONE
-
-    fun stringToSeverity' "emerge"  = SOME Emerg
-      | stringToSeverity' "panic"   = SOME Emerg
-      | stringToSeverity' "alert"   = SOME Alert
-      | stringToSeverity' "crit"    = SOME Crit
-      | stringToSeverity' "err"     = SOME Err
-      | stringToSeverity' "error"   = SOME Err
-      | stringToSeverity' "warning" = SOME Warning
-      | stringToSeverity' "warn"    = SOME Warning
-      | stringToSeverity' "notice"  = SOME Notice
-      | stringToSeverity' "info"    = SOME Info
-      | stringToSeverity' "debug"   = SOME Debug
-      | stringToSeverity' _ = NONE
-    fun stringToSeverity s = stringToSeverity' (String.map Char.toLower s)
-
     fun priToString (facility, severity) =
           let
-            val added = Facility.toInt facility * 8 + severityToInt severity
+            val added = Facility.toInt facility * 8 + Severity.toInt severity
           in
             "<" ^ Int.toString added ^ ">"
           end
@@ -245,7 +257,7 @@ end = struct
             val lo = i mod 8
           in
             Facility.fromInt hi >>= (fn facility =>
-            intToSeverity    lo >>= (fn severity =>
+            Severity.fromInt lo >>= (fn severity =>
             SOME (facility, severity)))
           end
 
@@ -465,21 +477,21 @@ end = struct
             Socket.sendVecTo (sock, sock_addr, toSlice message)
           end
 
-    val emerg   = log (Facility.User, Emerg)
-    val alert   = log (Facility.User, Alert)
-    val crit    = log (Facility.User, Crit)
-    val err     = log (Facility.User, Err)
-    val warning = log (Facility.User, Warning)
-    val notice  = log (Facility.User, Notice)
-    val info    = log (Facility.User, Info)
-    val debug   = log (Facility.User, Debug)
+    val emerg   = log (Facility.User, Severity.Emerg)
+    val alert   = log (Facility.User, Severity.Alert)
+    val crit    = log (Facility.User, Severity.Crit)
+    val err     = log (Facility.User, Severity.Err)
+    val warning = log (Facility.User, Severity.Warning)
+    val notice  = log (Facility.User, Severity.Notice)
+    val info    = log (Facility.User, Severity.Info)
+    val debug   = log (Facility.User, Severity.Debug)
   end
 
   structure Conf = struct
     exception Conf of string
 
     datatype facility_pattern = Facility of Facility.facility | AnyFacility
-    datatype priority_pattern = GreaterThanOrEqualPriority of severity | AnyPriority | NonePriority
+    datatype priority_pattern = GreaterThanOrEqualPriority of Severity.severity | AnyPriority | NonePriority
     type selector = facility_pattern list * priority_pattern
     datatype action = File of string
     type rule = selector list * action
@@ -510,7 +522,7 @@ end = struct
               if priority = "*" then AnyPriority
               else if priority = "none" then NonePriority
               else
-                case Message.stringToSeverity priority of
+                case Severity.fromString priority of
                      NONE => raise Conf priority
                    | SOME priority => GreaterThanOrEqualPriority priority
           in
@@ -569,7 +581,7 @@ end = struct
             (* update(override) matched status *)
             case priority of
                  GreaterThanOrEqualPriority severity' =>
-                   matchSelectors selectors pri (Message.ge (severity, severity'))
+                   matchSelectors selectors pri (Severity.ge (severity, severity'))
                | AnyPriority =>
                    matchSelectors selectors pri true
                | NonePriority =>
