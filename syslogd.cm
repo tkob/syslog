@@ -1,9 +1,11 @@
 Library
   structure Syslog
+  structure SyslogServer
   structure Syslogd
 is
   $/basis.cm
   $cml/cml.cm
 
   syslog.sml
+  syslog-server.sml
   syslogd.sml

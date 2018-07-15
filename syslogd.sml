@@ -23,7 +23,7 @@ structure Syslogd = struct
           val rules = Syslog.Conf.load inputLine (lines "*.* messages")
           fun boot () = (
             print "starting syslogd\n";
-            Syslog.Server.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules))
+            SyslogServer.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules))
             handle e => print (exnMessage e ^ "\n")
         in
           print "booting\n";
