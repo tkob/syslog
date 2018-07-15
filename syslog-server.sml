@@ -1,5 +1,5 @@
 structure SyslogServer :> sig
-  val start : string * INetSock.sock_addr * Syslog.Conf.rule list -> unit
+  val start : string * INetSock.sock_addr * SyslogConf.rule list -> unit
 end = struct
   fun socketFromPath path =
         let
@@ -76,7 +76,7 @@ end = struct
               val ch = CML.channel ()
               val writer =
                 case action of
-                     Syslog.Conf.File fileName =>
+                     SyslogConf.File fileName =>
                        let
                          val fd = outputFileFromPath fileName
                          fun writer () =
@@ -111,7 +111,7 @@ end = struct
                                  NONE =>(Syslog.Facility.User, Syslog.Severity.Info)
                                | SOME pri => pri
                 in
-                  Syslog.Conf.app (sendToCh message) rules pri;
+                  SyslogConf.app (sendToCh message) rules pri;
                   receiveLoop sock
                 end
           val localSock = socketFromPath path
@@ -121,7 +121,7 @@ end = struct
           val syslogInfo = (Syslog.Facility.Syslog, Syslog.Severity.Info)
           val startMessage = (SOME syslogInfo, NONE, "syslogd started")
         in
-          Syslog.Conf.app (sendToCh startMessage) rules syslogInfo
+          SyslogConf.app (sendToCh startMessage) rules syslogInfo
         end
 end
 

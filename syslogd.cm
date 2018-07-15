@@ -7,5 +7,6 @@ is
   $cml/cml.cm
 
   syslog.sml
+  syslog-conf.sml
   syslog-server.sml
   syslogd.sml

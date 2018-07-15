@@ -1,6 +1,7 @@
 $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/cml/cml.mlb
 syslog.sml
+syslog-conf.sml
 syslog-server.sml
 syslogd.sml
 boot.sml

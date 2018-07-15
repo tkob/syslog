@@ -20,7 +20,7 @@ structure Syslogd = struct
         let
           val inputLine = TextIO.StreamIO.inputLine
           val lines = TextIO.getInstream o TextIO.openString
-          val rules = Syslog.Conf.load inputLine (lines "*.* messages")
+          val rules = SyslogConf.load inputLine (lines "*.* messages")
           fun boot () = (
             print "starting syslogd\n";
             SyslogServer.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules))
