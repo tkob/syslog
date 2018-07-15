@@ -1,32 +1,38 @@
 structure Syslog :> sig
-  datatype facility = Kern
-                    | User
-                    | Mail
-                    | Daemon
-                    | Auth
-                    | Syslog
-                    | Lpr
-                    | New
-                    | Uucp
-                    | Cron
-                    | Authpriv
-                    | Ftp
-                    | Ntp
-                    | LogAudit
-                    | LogAlert
-                    | Clock
-                    | Local0
-                    | Local1
-                    | Local2
-                    | Local3
-                    | Local4
-                    | Local5
-                    | Local6
-                    | Local7
+  structure Facility : sig
+    datatype facility = Kern
+                      | User
+                      | Mail
+                      | Daemon
+                      | Auth
+                      | Syslog
+                      | Lpr
+                      | New
+                      | Uucp
+                      | Cron
+                      | Authpriv
+                      | Ftp
+                      | Ntp
+                      | LogAudit
+                      | LogAlert
+                      | Clock
+                      | Local0
+                      | Local1
+                      | Local2
+                      | Local3
+                      | Local4
+                      | Local5
+                      | Local6
+                      | Local7
+
+    val toInt : facility -> int
+    val fromInt : int -> facility option
+    val fromString : string -> facility option
+  end
 
   datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
 
-  type pri = facility * severity
+  type pri = Facility.facility * severity
 
   structure Message : sig
       type header = Date.date * string
@@ -56,7 +62,7 @@ structure Syslog :> sig
   structure Conf : sig
     exception Conf of string
 
-    datatype facility_pattern = Facility of facility | AnyFacility
+    datatype facility_pattern = Facility of Facility.facility | AnyFacility
     datatype priority_pattern = GreaterThanOrEqualPriority of severity | AnyPriority | NonePriority
     type selector = facility_pattern list * priority_pattern
     datatype action = File of string
@@ -68,34 +74,117 @@ structure Syslog :> sig
     val app : (action -> unit) -> rule list -> pri -> unit
   end
 end = struct
-  datatype facility = Kern
-                    | User
-                    | Mail
-                    | Daemon
-                    | Auth
-                    | Syslog
-                    | Lpr
-                    | New
-                    | Uucp
-                    | Cron
-                    | Authpriv
-                    | Ftp
-                    | Ntp
-                    | LogAudit
-                    | LogAlert
-                    | Clock
-                    | Local0
-                    | Local1
-                    | Local2
-                    | Local3
-                    | Local4
-                    | Local5
-                    | Local6
-                    | Local7
+  structure Facility = struct
+    datatype facility = Kern
+                      | User
+                      | Mail
+                      | Daemon
+                      | Auth
+                      | Syslog
+                      | Lpr
+                      | New
+                      | Uucp
+                      | Cron
+                      | Authpriv
+                      | Ftp
+                      | Ntp
+                      | LogAudit
+                      | LogAlert
+                      | Clock
+                      | Local0
+                      | Local1
+                      | Local2
+                      | Local3
+                      | Local4
+                      | Local5
+                      | Local6
+                      | Local7
+
+    fun toInt Kern     = 0
+      | toInt User     = 1
+      | toInt Mail     = 2
+      | toInt Daemon   = 3
+      | toInt Auth     = 4
+      | toInt Syslog   = 5
+      | toInt Lpr      = 6
+      | toInt New      = 7
+      | toInt Uucp     = 8
+      | toInt Cron     = 9
+      | toInt Authpriv = 10
+      | toInt Ftp      = 11
+      | toInt Ntp      = 12
+      | toInt LogAudit = 13
+      | toInt LogAlert = 14
+      | toInt Clock    = 15
+      | toInt Local0   = 16
+      | toInt Local1   = 17
+      | toInt Local2   = 18
+      | toInt Local3   = 19
+      | toInt Local4   = 20
+      | toInt Local5   = 21
+      | toInt Local6   = 22
+      | toInt Local7   = 23
+
+    fun fromInt 0  = SOME Kern
+      | fromInt 1  = SOME User
+      | fromInt 2  = SOME Mail
+      | fromInt 3  = SOME Daemon
+      | fromInt 4  = SOME Auth
+      | fromInt 5  = SOME Syslog
+      | fromInt 6  = SOME Lpr
+      | fromInt 7  = SOME New
+      | fromInt 8  = SOME Uucp
+      | fromInt 9  = SOME Cron
+      | fromInt 10 = SOME Authpriv
+      | fromInt 11 = SOME Ftp
+      | fromInt 12 = SOME Ntp
+      | fromInt 13 = SOME LogAudit
+      | fromInt 14 = SOME LogAlert
+      | fromInt 15 = SOME Clock
+      | fromInt 16 = SOME Local0
+      | fromInt 17 = SOME Local1
+      | fromInt 18 = SOME Local2
+      | fromInt 19 = SOME Local3
+      | fromInt 20 = SOME Local4
+      | fromInt 21 = SOME Local5
+      | fromInt 22 = SOME Local6
+      | fromInt 23 = SOME Local7
+      | fromInt _  = NONE
+
+    fun fromString' "kern"     = SOME Kern
+      | fromString' "user"     = SOME User
+      | fromString' "mail"     = SOME Mail
+      | fromString' "daemon"   = SOME Daemon
+      | fromString' "auth"     = SOME Auth
+      | fromString' "security" = SOME Auth
+      | fromString' "syslog"   = SOME Syslog
+      | fromString' "lpr"      = SOME Lpr
+      | fromString' "news"     = SOME New
+      | fromString' "uucp"     = SOME Uucp
+      | fromString' "cron"     = SOME Cron
+      | fromString' "authpriv" = SOME Authpriv
+      (*
+      | fromString' ""         = SOME Ftp
+      | fromString' ""         = SOME Ntp
+      | fromString' ""         = SOME LogAudit
+      | fromString' ""         = SOME LogAlert
+      | fromString' ""         = SOME Clock
+      *)
+      | fromString' "local0"   = SOME Local0
+      | fromString' "local1"   = SOME Local1
+      | fromString' "local2"   = SOME Local2
+      | fromString' "local3"   = SOME Local3
+      | fromString' "local4"   = SOME Local4
+      | fromString' "local5"   = SOME Local5
+      | fromString' "local6"   = SOME Local6
+      | fromString' "local7"   = SOME Local7
+      | fromString' _  = NONE
+    fun fromString s = fromString' (String.map Char.toLower s)
+  end
 
   datatype severity = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
 
-  type pri = facility * severity
+  type pri = Facility.facility * severity
 
   infix >>=
   fun (SOME x) >>= k = k x
@@ -104,87 +193,6 @@ end = struct
   structure Message = struct
     type header = Date.date * string
     type message = pri option * header option * string
-
-    fun facilityToInt Kern     = 0
-      | facilityToInt User     = 1
-      | facilityToInt Mail     = 2
-      | facilityToInt Daemon   = 3
-      | facilityToInt Auth     = 4
-      | facilityToInt Syslog   = 5
-      | facilityToInt Lpr      = 6
-      | facilityToInt New      = 7
-      | facilityToInt Uucp     = 8
-      | facilityToInt Cron     = 9
-      | facilityToInt Authpriv = 10
-      | facilityToInt Ftp      = 11
-      | facilityToInt Ntp      = 12
-      | facilityToInt LogAudit = 13
-      | facilityToInt LogAlert = 14
-      | facilityToInt Clock    = 15
-      | facilityToInt Local0   = 16
-      | facilityToInt Local1   = 17
-      | facilityToInt Local2   = 18
-      | facilityToInt Local3   = 19
-      | facilityToInt Local4   = 20
-      | facilityToInt Local5   = 21
-      | facilityToInt Local6   = 22
-      | facilityToInt Local7   = 23
-
-    fun intToFacility 0  = SOME Kern
-      | intToFacility 1  = SOME User
-      | intToFacility 2  = SOME Mail
-      | intToFacility 3  = SOME Daemon
-      | intToFacility 4  = SOME Auth
-      | intToFacility 5  = SOME Syslog
-      | intToFacility 6  = SOME Lpr
-      | intToFacility 7  = SOME New
-      | intToFacility 8  = SOME Uucp
-      | intToFacility 9  = SOME Cron
-      | intToFacility 10 = SOME Authpriv
-      | intToFacility 11 = SOME Ftp
-      | intToFacility 12 = SOME Ntp
-      | intToFacility 13 = SOME LogAudit
-      | intToFacility 14 = SOME LogAlert
-      | intToFacility 15 = SOME Clock
-      | intToFacility 16 = SOME Local0
-      | intToFacility 17 = SOME Local1
-      | intToFacility 18 = SOME Local2
-      | intToFacility 19 = SOME Local3
-      | intToFacility 20 = SOME Local4
-      | intToFacility 21 = SOME Local5
-      | intToFacility 22 = SOME Local6
-      | intToFacility 23 = SOME Local7
-      | intToFacility _  = NONE
-
-    fun stringToFacility' "kern"     = SOME Kern
-      | stringToFacility' "user"     = SOME User
-      | stringToFacility' "mail"     = SOME Mail
-      | stringToFacility' "daemon"   = SOME Daemon
-      | stringToFacility' "auth"     = SOME Auth
-      | stringToFacility' "security" = SOME Auth
-      | stringToFacility' "syslog"   = SOME Syslog
-      | stringToFacility' "lpr"      = SOME Lpr
-      | stringToFacility' "news"     = SOME New
-      | stringToFacility' "uucp"     = SOME Uucp
-      | stringToFacility' "cron"     = SOME Cron
-      | stringToFacility' "authpriv" = SOME Authpriv
-      (*
-      | stringToFacility' ""         = SOME Ftp
-      | stringToFacility' ""         = SOME Ntp
-      | stringToFacility' ""         = SOME LogAudit
-      | stringToFacility' ""         = SOME LogAlert
-      | stringToFacility' ""         = SOME Clock
-      *)
-      | stringToFacility' "local0"   = SOME Local0
-      | stringToFacility' "local1"   = SOME Local1
-      | stringToFacility' "local2"   = SOME Local2
-      | stringToFacility' "local3"   = SOME Local3
-      | stringToFacility' "local4"   = SOME Local4
-      | stringToFacility' "local5"   = SOME Local5
-      | stringToFacility' "local6"   = SOME Local6
-      | stringToFacility' "local7"   = SOME Local7
-      | stringToFacility' _  = NONE
-    fun stringToFacility s = stringToFacility' (String.map Char.toLower s)
 
     fun severityToInt Emerg   = 0
       | severityToInt Alert   = 1
@@ -226,7 +234,7 @@ end = struct
 
     fun priToString (facility, severity) =
           let
-            val added = facilityToInt facility * 8 + severityToInt severity
+            val added = Facility.toInt facility * 8 + severityToInt severity
           in
             "<" ^ Int.toString added ^ ">"
           end
@@ -236,8 +244,8 @@ end = struct
             val hi = i div 8
             val lo = i mod 8
           in
-            intToFacility hi >>= (fn facility =>
-            intToSeverity lo >>= (fn severity =>
+            Facility.fromInt hi >>= (fn facility =>
+            intToSeverity    lo >>= (fn severity =>
             SOME (facility, severity)))
           end
 
@@ -457,20 +465,20 @@ end = struct
             Socket.sendVecTo (sock, sock_addr, toSlice message)
           end
 
-    val emerg   = log (User, Emerg)
-    val alert   = log (User, Alert)
-    val crit    = log (User, Crit)
-    val err     = log (User, Err)
-    val warning = log (User, Warning)
-    val notice  = log (User, Notice)
-    val info    = log (User, Info)
-    val debug   = log (User, Debug)
+    val emerg   = log (Facility.User, Emerg)
+    val alert   = log (Facility.User, Alert)
+    val crit    = log (Facility.User, Crit)
+    val err     = log (Facility.User, Err)
+    val warning = log (Facility.User, Warning)
+    val notice  = log (Facility.User, Notice)
+    val info    = log (Facility.User, Info)
+    val debug   = log (Facility.User, Debug)
   end
 
   structure Conf = struct
     exception Conf of string
 
-    datatype facility_pattern = Facility of facility | AnyFacility
+    datatype facility_pattern = Facility of Facility.facility | AnyFacility
     datatype priority_pattern = GreaterThanOrEqualPriority of severity | AnyPriority | NonePriority
     type selector = facility_pattern list * priority_pattern
     datatype action = File of string
@@ -479,7 +487,7 @@ end = struct
     fun parseFacility s =
           if s = "*" then AnyFacility
           else
-            case Message.stringToFacility s of
+            case Facility.fromString s of
                  NONE => raise Conf s
                | SOME facility => Facility facility
 
