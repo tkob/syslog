@@ -1,5 +1,5 @@
 structure SyslogServer :> sig
-  val start : string * INetSock.sock_addr * SyslogConf.rule list -> unit
+  val start : string * INetSock.sock_addr * SyslogConf.rule list * (Syslog.Message.message CML.chan * SyslogConf.action -> (unit -> unit)) -> unit
 end = struct
   fun socketFromPath path =
         let
@@ -47,15 +47,6 @@ end = struct
           sock
         end
 
-  fun outputFileFromPath path =
-        let
-          open Posix.FileSys
-          val mode600 = S.flags [S.irusr, S.iwusr]
-        in
-          (* open path, create if it does not exist *)
-          createf (path, O_WRONLY, O.flags [O.append, O.sync], mode600)
-        end
-
   local
     fun uniq' [] acc = acc
       | uniq' (x::xs) acc =
@@ -66,7 +57,7 @@ end = struct
     fun uniq xs = uniq' xs []
   end
 
-  fun start (path, addr, rules) =
+  fun start (path, addr, rules, createWriter) =
         let
           infix |>
           fun (x |> f) = f x
@@ -74,23 +65,7 @@ end = struct
           val actionToCh = actions |> map (fn action =>
             let
               val ch = CML.channel ()
-              val writer =
-                case action of
-                     SyslogConf.File fileName =>
-                       let
-                         val fd = outputFileFromPath fileName
-                         fun writer () =
-                               let
-                                 val message = CML.recv ch
-                                 val string = Syslog.Message.toString message ^ "\n"
-                                 val vec = Word8VectorSlice.full (Byte.stringToBytes string)
-                                 val writtenBytes = Posix.IO.writeVec (fd, vec)
-                               in
-                                 writer ()
-                               end
-                       in
-                         writer
-                       end
+              val writer = createWriter (ch, action)
             in
               CML.spawn writer;
               (action, ch)
