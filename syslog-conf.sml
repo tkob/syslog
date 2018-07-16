@@ -7,7 +7,10 @@ structure SyslogConf :> sig
                             | AnyPriority
                             | NonePriority
   type selector = facility_pattern list * priority_pattern
-  datatype action = File of string type rule = selector list * action
+  datatype action = File of string
+                  | Remote of string
+                  | RemoteTcp of string
+  type rule = selector list * action
 
   val parseRule : Substring.substring -> rule
   val load : ('strm -> (string * 'strm) option) -> 'strm -> rule list
@@ -25,6 +28,8 @@ end = struct
                             | NonePriority
   type selector = facility_pattern list * priority_pattern
   datatype action = File of string
+                  | Remote of string
+                  | RemoteTcp of string
   type rule = selector list * action
 
   fun parseFacility s =
@@ -67,7 +72,13 @@ end = struct
           map parseSelector selectors
         end
 
-  fun parseAction s = File (Substring.string s)
+  fun parseAction s =
+        if Substring.isPrefix "@@" s then
+          RemoteTcp (Substring.string (Substring.triml 2 s))
+        else if Substring.isPrefix "@" s then
+          Remote (Substring.string (Substring.triml 1 s))
+        else
+          File (Substring.string s)
 
   fun parseRule s =
         let
