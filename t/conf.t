@@ -11,96 +11,95 @@
 
 # All crit or severer messages, except for kern
 
-    - val conf = Syslog.Conf.load inputLine (lines "*.crit;kern.none /var/adm/critical");
+    - val conf = SyslogConf.load inputLine (lines "*.crit;kern.none /var/adm/critical");
     ...
 
-    - Syslog.Conf.run conf (Syslog.User, Syslog.Crit);
-    val it = [File "/var/adm/critical"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.User, Syslog.Severity.Crit);
+    val it = [File "/var/adm/critical"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.User, Syslog.Alert);
-    val it = [File "/var/adm/critical"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.User, Syslog.Severity.Alert);
+    val it = [File "/var/adm/critical"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.User, Syslog.Err);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.User, Syslog.Severity.Err);
+    val it = [] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Crit);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Crit);
+    val it = [] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Alert);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Alert);
+    val it = [] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Err);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Err);
+    val it = [] : SyslogConf.action list
 
 # All kern messages
 
-    - val conf = Syslog.Conf.load inputLine (lines "kern.* /var/adm/kern");
+    - val conf = SyslogConf.load inputLine (lines "kern.* /var/adm/kern");
     ...
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Emerg);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Emerg);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Alert);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Alert);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Crit);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Crit);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Err);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Err);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Warning);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Warning);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Notice);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Notice);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Info);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Info);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Debug);
-    val it = [File "/var/adm/kern"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Debug);
+    val it = [File "/var/adm/kern"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.User, Syslog.Emerg);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.User, Syslog.Severity.Emerg);
+    val it = [] : SyslogConf.action list
 
 # mail.info and news.info
 
-    - val conf = Syslog.Conf.load inputLine (lines "mail,news.info /var/adm/info");
+    - val conf = SyslogConf.load inputLine (lines "mail,news.info /var/adm/info");
     ...
 
-    - Syslog.Conf.run conf (Syslog.Mail, Syslog.Info);
-    val it = [File "/var/adm/info"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Mail, Syslog.Severity.Info);
+    val it = [File "/var/adm/info"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.New, Syslog.Info);
-    val it = [File "/var/adm/info"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.New, Syslog.Severity.Info);
+    val it = [File "/var/adm/info"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.User, Syslog.Info);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.User, Syslog.Severity.Info);
+    val it = [] : SyslogConf.action list
 
 # Multiple rules
 
-    - val conf = Syslog.Conf.load inputLine (lines "kern.* /var/adm/kernel\nkern.crit /dev/console\n");
+    - val conf = SyslogConf.load inputLine (lines "kern.* /var/adm/kernel\nkern.crit /dev/console\n");
     ...
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Err);
-    val it = [File "/var/adm/kernel"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Err);
+    val it = [File "/var/adm/kernel"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Kern, Syslog.Crit);
-    val it = [File "/var/adm/kernel",File "/dev/console"]
-      : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Kern, Syslog.Severity.Crit);
+    val it = [File "/var/adm/kernel",File "/dev/console"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.User, Syslog.Emerg);
-    val it = [] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.User, Syslog.Severity.Emerg);
+    val it = [] : SyslogConf.action list
 
 # Confusing cases
 
-    - val conf = Syslog.Conf.load inputLine (lines "mail.crit;*.err /var/log/messages");
+    - val conf = SyslogConf.load inputLine (lines "mail.crit;*.err /var/log/messages");
     ...
 
-    - Syslog.Conf.run conf (Syslog.Mail, Syslog.Crit);
-    val it = [File "/var/log/messages"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Mail, Syslog.Severity.Crit);
+    val it = [File "/var/log/messages"] : SyslogConf.action list
 
-    - Syslog.Conf.run conf (Syslog.Mail, Syslog.Err);
-    val it = [File "/var/log/messages"] : Syslog.Conf.action list
+    - SyslogConf.run conf (Syslog.Facility.Mail, Syslog.Severity.Err);
+    val it = [File "/var/log/messages"] : SyslogConf.action list
 

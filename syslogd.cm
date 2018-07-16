@@ -1,5 +1,6 @@
 Library
   structure Syslog
+  structure SyslogConf
   structure SyslogServer
   structure Syslogd
 is
