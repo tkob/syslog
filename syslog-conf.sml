@@ -14,8 +14,8 @@ structure SyslogConf :> sig
 
   val parseRule : Substring.substring -> rule
   val load : ('strm -> (string * 'strm) option) -> 'strm -> rule list
-  val run : rule list -> Syslog.pri -> action list
-  val app : (action -> unit) -> rule list -> Syslog.pri -> unit
+  val run : rule list -> Syslog.Pri.pri -> action list
+  val app : (action -> unit) -> rule list -> Syslog.Pri.pri -> unit
 end = struct
   open Syslog
 

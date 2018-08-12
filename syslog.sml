@@ -42,22 +42,27 @@ structure Syslog :> sig
     val fromString : string -> severity option
   end
 
-  type pri = Facility.facility * Severity.severity
+  structure Pri : sig
+    type pri = Facility.facility * Severity.severity
+
+    val toString : pri -> string
+    val fromInt : int -> pri option
+  end
 
   structure Message : sig
       type header = Date.date * string
-      type message = pri option * header option * string
+      type message = Pri.pri option * header option * string
 
       val fromString : string -> message
       val toString : message -> string
   end
 
   structure Remote : sig
-    val log : INetSock.sock_addr -> pri -> string -> unit
+    val log : INetSock.sock_addr -> Pri.pri -> string -> unit
   end
 
   structure Local : sig
-    val log : pri -> string -> unit
+    val log : Pri.pri -> string -> unit
 
     val emerg   : string -> unit
     val alert   : string -> unit
@@ -219,24 +224,21 @@ end = struct
     fun fromString s = fromString' (String.map Char.toLower s)
   end
 
-  type pri = Facility.facility * Severity.severity
-
   infix >>=
   fun (SOME x) >>= k = k x
     | NONE     >>= k = NONE
 
-  structure Message = struct
-    type header = Date.date * string
-    type message = pri option * header option * string
+  structure Pri = struct
+    type pri = Facility.facility * Severity.severity
 
-    fun priToString (facility, severity) =
+    fun toString (facility, severity) =
           let
             val added = Facility.toInt facility * 8 + Severity.toInt severity
           in
             "<" ^ Int.toString added ^ ">"
           end
 
-    fun intToPri i =
+    fun fromInt i =
           let
             val hi = i div 8
             val lo = i mod 8
@@ -245,6 +247,11 @@ end = struct
             Severity.fromInt lo >>= (fn severity =>
             SOME (facility, severity)))
           end
+  end
+
+  structure Message = struct
+    type header = Date.date * string
+    type message = Pri.pri option * header option * string
 
     infix ||
     fun (a || b) input1 strm =
@@ -320,7 +327,7 @@ end = struct
     fun pri input1 strm = (
           (char #"<" -- int -- char #">")
           >> flattenTriple
-          >> (fn (_, i, _) => intToPri i))
+          >> (fn (_, i, _) => Pri.fromInt i))
           input1 strm
     fun stringToMonth "Jan" = SOME Date.Jan
       | stringToMonth "Feb" = SOME Date.Feb
@@ -413,9 +420,9 @@ end = struct
           Date.fmt " %H:%M:%S" timestamp
 
     fun toString (SOME pri, SOME (timestamp, host), msg) =
-          priToString pri ^ timestampToString timestamp ^ " " ^ host ^ " " ^ msg
+          Pri.toString pri ^ timestampToString timestamp ^ " " ^ host ^ " " ^ msg
       | toString (SOME pri, NONE, msg) =
-          priToString pri ^ msg
+          Pri.toString pri ^ msg
       | toString (NONE, NONE, msg) =
           msg
       | toString (NONE, SOME (timestamp, host), msg) =
@@ -427,7 +434,7 @@ end = struct
   structure Remote = struct
     fun construct (pri, (timestamp, hostname), msg) =
           let
-            val pri' = Message.priToString pri
+            val pri' = Pri.toString pri
             val month = Date.fmt "%b" timestamp
             val day =
                 let val day = Int.toString (Date.day timestamp) in
@@ -457,7 +464,7 @@ end = struct
           let
             val sock_addr = UnixSock.toAddr "/dev/log"
             val sock = UnixSock.DGrm.socket ()
-            val message = Message.priToString pri ^ msg
+            val message = Pri.toString pri ^ msg
           in
             Socket.sendVecTo (sock, sock_addr, toSlice message)
           end
