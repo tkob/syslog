@@ -25,7 +25,11 @@ structure Syslogd = struct
           createf (path, O_WRONLY, O.flags [O.append, O.sync], mode600)
         end
 
-  fun createWriter (ch, action) =
+  (* ch : a dispatcher-to-writer channel
+   * action : an action
+   * return : a spawnable writer which takes a message from ch
+   *)
+  fun writerFactory (ch : Syslog.Message.message CML.chan, action : SyslogConf.action) : (unit -> unit) =
         case action of
              SyslogConf.File fileName =>
                let
@@ -54,7 +58,7 @@ structure Syslogd = struct
           val rules = SyslogConf.load inputLine (lines "*.* messages")
           fun boot () = (
             print "starting syslogd\n";
-            SyslogServer.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules, createWriter))
+            SyslogServer.start ("log", valOf (stringToAddr ("0.0.0.0:5140")), rules, writerFactory))
             handle e => print (exnMessage e ^ "\n")
         in
           print "booting\n";

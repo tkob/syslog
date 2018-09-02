@@ -57,7 +57,7 @@ end = struct
     fun uniq xs = uniq' xs []
   end
 
-  fun start (path, addr, rules, createWriter) =
+  fun start (path, addr, rules, writerFactory) =
         let
           infix |>
           fun (x |> f) = f x
@@ -65,7 +65,7 @@ end = struct
           val actionToCh = actions |> map (fn action =>
             let
               val ch = CML.channel ()
-              val writer = createWriter (ch, action)
+              val writer = writerFactory (ch, action)
             in
               CML.spawn writer;
               (action, ch)
