@@ -14,6 +14,7 @@ structure SyslogConf :> sig
 
   val parseRule : Substring.substring -> rule
   val load : ('strm -> (string * 'strm) option) -> 'strm -> rule list
+  val loadFile : string -> rule list
   val run : rule list -> Syslog.Pri.pri -> action list
   val app : (action -> unit) -> rule list -> Syslog.Pri.pri -> unit
 end = struct
@@ -108,6 +109,14 @@ end = struct
                        end
         in
           processLine strm []
+        end
+
+  fun loadFile fileName =
+        let
+          val strm = TextIO.getInstream (TextIO.openIn fileName)
+        in
+          load TextIO.StreamIO.inputLine strm
+          before TextIO.StreamIO.closeIn strm
         end
 
   (* match at least one of the comma-delimited facilities? *)
