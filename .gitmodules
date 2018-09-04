@@ -1,3 +1,6 @@
 [submodule "aws4sml"]
 	path = aws4sml
 	url = https://github.com/tkob/aws4sml.git
+[submodule "ponyo"]
+	path = ponyo
+	url = https://github.com/eatonphil/ponyo.git
