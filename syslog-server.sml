@@ -17,23 +17,17 @@ end = struct
           if OS.FileSys.access (path, [])
           then
             let
-              val sock = UnixSock.DGrm.socket ()
-            in
-              let
-                val sockOpt =
-                  (ignore (Socket.connectNB (sock, addr)); NONE)
-                  handle OS.SysErr (_, _) => (
-                    (* if connect raises an exception,
-                       the socket file can be safely removed *)
-                    OS.FileSys.remove path;
-                    SOME (create path))
-               in
-                 case sockOpt of
-                      SOME sock => sock
-                    | NONE =>
-                        (* else, someone else is using the socket *)
-                        raise OS.SysErr ("\"" ^  path ^ "\" already in use", NONE)
-              end
+              exception InUse
+             in
+               (ignore (Socket.connectNB (UnixSock.DGrm.socket (), addr)); raise InUse)
+               handle
+                 OS.SysErr (_, _) =>
+                   (* if connect raises an exception,
+                      the socket is not used and it can be safely removed *)
+                   (OS.FileSys.remove path; create path)
+               | InUse =>
+                   (* else, someone else is using the socket *)
+                   raise OS.SysErr ("\"" ^  path ^ "\" already in use", NONE)
             end
           else
             create path
