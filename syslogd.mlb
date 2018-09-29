@@ -1,5 +1,5 @@
 $(SML_LIB)/basis/basis.mlb
-$(SML_LIB)/cml/cml.mlb
+channel.sml
 syslog.sml
 syslog-conf.sml
 syslog-server.sml

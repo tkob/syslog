@@ -1,5 +1,5 @@
 structure SyslogServer :> sig
-  val start : string * INetSock.sock_addr * SyslogConf.rule list * (Syslog.Message.message CML.chan * SyslogConf.action -> (unit -> unit)) -> unit
+  val start : string * INetSock.sock_addr * SyslogConf.rule list * (Syslog.Message.message Channel.chan * SyslogConf.action -> (unit -> unit)) -> unit
 end = struct
   fun socketFromPath path =
         let
@@ -58,10 +58,10 @@ end = struct
           val actions = uniq (map #2 rules)
           val actionToCh = actions |> map (fn action =>
             let
-              val ch = CML.channel ()
+              val ch = Channel.chan ()
               val writer = writerFactory (ch, action)
             in
-              CML.spawn writer;
+              writer ();
               (action, ch)
             end)
           fun lookupCh [] action =
@@ -69,28 +69,46 @@ end = struct
             | lookupCh ((action, ch)::actions) action' =
                 if action = action' then ch
                 else lookupCh actions action'
-          fun sendToCh message action =
-                CML.send (lookupCh actionToCh action, message)
-          fun receiveLoop sock =
+
+          val localSock = socketFromPath path
+          val remoteSock = socketFromAddr addr
+
+          fun receiveAndRoute sock k =
                 let
                   val (vec, _) = Socket.recvVecFrom (sock, 1024)
                   val s = Byte.bytesToString vec
                   val message = Syslog.Message.fromString s
                   val pri = case #1 message of
-                                 NONE =>(Syslog.Facility.User, Syslog.Severity.Info)
+                                 NONE => (Syslog.Facility.User, Syslog.Severity.Info)
                                | SOME pri => pri
+                  val actions = SyslogConf.run rules pri
+                  fun sendToCh [] = k ()
+                    | sendToCh (action::actions) =
+                        Channel.send (lookupCh actionToCh action) message (fn () => sendToCh actions)
                 in
-                  SyslogConf.app (sendToCh message) rules pri;
-                  receiveLoop sock
+                  sendToCh actions
                 end
-          val localSock = socketFromPath path
-          val remoteSock = socketFromAddr addr
-          val receiveLocal = CML.spawn (fn () => receiveLoop localSock)
-          val receiveRemote = CML.spawn (fn () => receiveLoop remoteSock)
-          val syslogInfo = (Syslog.Facility.Syslog, Syslog.Severity.Info)
-          val startMessage = (SOME syslogInfo, NONE, "syslogd started")
+          type handler = { sockDesc : Socket.sock_desc, handler : (unit -> unit) -> unit }
+          val handlers = [
+            { sockDesc = Socket.sockDesc localSock, handler = fn k => receiveAndRoute localSock k},
+            { sockDesc = Socket.sockDesc remoteSock, handler = fn k => receiveAndRoute remoteSock k}]
+          val descs = map #sockDesc handlers
+          fun loop () =
+                let
+                  val {rds, wrs, exs} =
+                    Socket.select {rds = descs, wrs = [], exs = [], timeout = NONE}
+                  fun callHandler [] = loop ()
+                    | callHandler (rd::rds) =
+                        let
+                          val SOME {handler, sockDesc} =
+                            List.find (fn {sockDesc, handler} => Socket.sameDesc (rd, sockDesc)) handlers
+                        in
+                          handler (fn () => callHandler rds)
+                        end
+                in
+                  callHandler rds
+                end
         in
-          SyslogConf.app (sendToCh startMessage) rules syslogInfo
+          loop ()
         end
 end
-

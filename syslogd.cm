@@ -5,8 +5,8 @@ Library
   structure Syslogd
 is
   $/basis.cm
-  $cml/cml.cm
 
+  channel.sml
   syslog.sml
   syslog-conf.sml
   syslog-server.sml

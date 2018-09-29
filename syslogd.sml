@@ -27,22 +27,22 @@ structure Syslogd = struct
 
   (* ch : a dispatcher-to-writer channel
    * action : an action
-   * return : a spawnable writer which takes a message from ch
+   * return : a writer which takes a message from ch
    *)
-  fun writerFactory (ch : Syslog.Message.message CML.chan, action : SyslogConf.action) : (unit -> unit) =
+  fun writerFactory (ch : Syslog.Message.message Channel.chan, action : SyslogConf.action) : (unit -> unit) =
         case action of
              SyslogConf.File fileName =>
                let
                  val fd = outputFileFromPath fileName
                  fun writer () =
-                       let
-                         val message = CML.recv ch
-                         val string = Syslog.Message.toString message ^ "\n"
-                         val vec = Word8VectorSlice.full (Byte.stringToBytes string)
-                         val writtenBytes = Posix.IO.writeVec (fd, vec)
-                       in
-                         writer ()
-                       end
+                       Channel.recv ch (fn message =>
+                         let
+                           val string = Syslog.Message.toString message ^ "\n"
+                           val vec = Word8VectorSlice.full (Byte.stringToBytes string)
+                           val writtenBytes = Posix.IO.writeVec (fd, vec)
+                         in
+                           writer ()
+                         end)
                in
                  writer
                end
@@ -62,7 +62,8 @@ structure Syslogd = struct
             handle e => print (exnMessage e ^ "\n")
         in
           print "booting\n";
-          RunCML.doit (boot, NONE)
+          boot ();
+          OS.Process.success
         end
 end
 
